@@ -1,0 +1,17 @@
+16
+og060523b1-2_idD_-_Scale_x1.000_y0.975_z1.000_-_Clone_1 bAC_L6BTC
+mtC151200B_idB bNAC_L23SBC
+rp140212_ecode_3_idB_-_Scale_x1.000_y0.950_z1.000_-_Clone_0 cACint_L4CHC
+dend-rp140212_ecode_3_idC_axon-rat_20151211_E2_LH3_cell3_-_Scale_x1.000_y0.975_z1.000 cADpyr_L2IPC
+sm100429b1-2_INT_idA_-_Scale_x1.000_y1.025_z1.000_-_Clone_11 cADpyr_L2TPC
+dend-sm100428a1-3_rpINT_idB_axon-sm110131a1-3_INT_idA_-_Scale_x1.000_y0.975_z1.000_-_Clone_0 cADpyr_L3TPC
+dend-sm110131a1-3_INT_idA_axon-sm101102a1-8_INT_idA_-_Scale_x1.000_y1.025_z1.000_-_Clone_0 cADpyr_L3TPC
+dend-vd110121A_INT_idC_axon-rp120608_P_3_idB_-_Scale_x1.000_y0.950_z1.000_-_Clone_0 cADpyr_L4TPC
+dend-rat_20160331_E2_LH3_cell1_axon-rp120902_P_2_idB_-_Scale_x1.000_y0.950_z1.000 cADpyr_L4UPC
+dend-vd110330_idB_axon-rat_20170523_E1_LH2_cell1 cADpyr_L5TPC
+dend-rp110125_L5-2_idF_axon-tkb070125a3_ch1_cc2_b_hw_60x_1_-_Scale_x1.000_y0.975_z1.000_-_Clone_0 cADpyr_L6BPC
+dend-Fluo41_left_axon-tkb061126a4_ch0_cc2_h_zk_60x_1_-_Scale_x1.000_y0.950_z1.000_-_Clone_1 cADpyr_L6HPC
+dend-tkb060119b1_ch0_cc1_n_db_60x_2_axon-tkb071119a1_ch2_cc1_n_db_100x_1_-_Scale_x1.000_y1.025_z1.000 cADpyr_L6IPC
+dend-rat_20160315_E2_LH3_cell1_axon-rat_20160317_E2_LH4_cell3_-_Scale_x1.000_y0.975_z1.000 cADpyr_L6UPC
+mtC080301C_idA_-_Scale_x1.000_y0.975_z1.000_-_Clone_0 cNAC_L23BTC
+mtC151001B_idB_-_Scale_x1.000_y1.050_z1.000 dNAC_L23SBC

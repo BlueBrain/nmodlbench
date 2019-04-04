@@ -1,0 +1,81 @@
+Run Default
+{
+   MorphologyPath /gpfs/bbp.cscs.ch/project/proj59/entities/morphologies/2017.10.31
+       METypePath /gpfs/bbp.cscs.ch/project/proj64/home/vangeit/modelmanagement/prod.20171103/mm_runs/run/1810912/output/emodels_hoc
+    MEComboInfoFile /gpfs/bbp.cscs.ch/project/proj64/home/vangeit/modelmanagement/prod.20171103/megate_runs/run/6c6d611/output_select/mecombo_emodel.tsv
+
+    CircuitPath /gpfs/bbp.cscs.ch/project/proj64/var/git/circuits/S1.v6a/20171206
+    nrnPath /gpfs/bbp.cscs.ch/project/proj64/var/git/circuits/S1.v6a/20171206/ncsFunctionalAllRecipePathways
+    CellLibraryFile circuit.mvd3
+
+    Simulator NEURON
+    RNGMode Random123
+    BaseSeed 719775
+
+	CurrentDir    /gpfs/bbp.cscs.ch/project/proj64/home/king/sim/v6_O1 
+	OutputRoot   /gpfs/bbp.cscs.ch/project/proj64/home/king/sim/v6_O1/output
+	TargetFile   /gpfs/bbp.cscs.ch/project/proj64/home/king/sim/v6_O1/user.target
+
+    RunMode RR
+    CircuitTarget Mosaic
+    #CircuitTarget single
+    #CircuitTarget selection
+    Duration 1000
+    Dt 0.025
+    #ForwardSkip 5000
+}
+
+Report soma
+{
+      Target L5_TPC:A
+        Type compartment
+    ReportOn v
+        Unit mV
+      Format Bin
+          Dt 0.1
+   StartTime 0.0
+     EndTime 9000
+}
+
+Report current
+{
+      Target AllSingle
+        Type Summation
+    ReportOn ina
+        Unit nA
+      Format Bin
+          Dt 0.1
+   StartTime 0.0
+     EndTime 9000
+}
+
+Stimulus Linear
+{
+
+              Mode Current
+           Pattern Linear
+          AmpStart 1.15
+             Delay 0.000000
+          Duration 20000.000000
+}
+
+StimulusInject LinearIntoExc
+{
+        Stimulus Linear
+        Target Excitatory
+}
+
+Stimulus hypamp
+{
+        Mode Current
+     Pattern Hyperpolarizing
+       Delay 0.0
+    Duration 20000.0
+}
+
+#StimulusInject hypamp_mosaic
+{
+        Stimulus hypamp
+        Target All
+}
+

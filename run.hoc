@@ -1,0 +1,146 @@
+{load_file("nrngui.hoc")}
+{load_file("netparmpi.hoc")}
+{load_file("defvar.hoc")}
+
+default_var("arg_tstop", 50)
+default_var("arg_target_count", 22)
+default_var("arg_coreneuron", 0)
+
+use_coreneuron = arg_coreneuron
+tstop = arg_tstop
+
+objref pnm, coreConfig
+targetCount = arg_target_count
+pnm = new ParallelNetManager(targetCount)
+coreConfig = new CoreConfig()
+
+objref typeFile, typeString
+objref morphList, etypeList, cellList, cellInst
+
+typeFile = new File("All/melist.txt")
+//typeFile = new File("SSCx/melist.txt")
+//typeFile = new File("Hippo/melist.txt")
+{typeFile.ropen()}
+
+morphList = new List()
+etypeList = new List()
+
+typeString = new String()
+
+// need HOC_LIBRARY_PATH to include "x/selected_hoc"
+typeCount = typeFile.scanvar()
+if( pnm.myid == 0 ) { print "Loading ", typeCount, " templates" }
+for typeIndex=0, typeCount-1 {
+    morphList.append( new String() )
+    etypeList.append( new String() )
+    typeFile.scanstr( morphList.o(typeIndex).s )
+    typeFile.scanstr( etypeList.o(typeIndex).s )
+
+    // must load etype hoc file
+    sprint( typeString.s, "%s.hoc", etypeList.o(typeIndex).s )
+    {load_file( typeString.s )}
+}
+{typeFile.close()}
+
+
+// cycle through list until N total cells are instantiated
+objref nil, nc
+cellList = new List()
+
+for cellIndex=0, targetCount-1 {
+    offset = cellIndex % typeCount
+    if( cellIndex % pnm.nhost != pnm.myid ) {
+        continue
+    }
+
+    sprint( typeString.s, "cellInst = new %s( %d, \"All/morphologies/\", \"%s.asc\" )", etypeList.o(offset).s, cellIndex+1, morphList.o(offset).s )
+    //sprint( typeString.s, "cellInst = new %s( %d, \"SSCx/morphologies/\", \"%s.asc\" )", etypeList.o(offset).s, cellIndex+1, morphList.o(offset).s )
+    //sprint( typeString.s, "cellInst = new %s( %d, \"Hippo/morphologies/\", \"%s.asc\" )", etypeList.o(offset).s, cellIndex+1, morphList.o(offset).s )
+    execute1( typeString.s )
+    cellList.append( cellInst )
+
+    cellInst.connect2target( nil, nc )
+    pnm.set_gid2node(cellIndex+1, pnm.myid)
+    pnm.pc.cell( cellIndex+1, nc )
+    pnm.spike_record( cellIndex+1 )
+    //print pnm.myid, " ", cellIndex+1
+}
+{pnm.pc.multisplit()}
+
+if( pnm.myid == 0 ) { print "done cells" }
+
+// stimulus
+objref stimList
+stimList = new List()
+for cellIndex=0, cellList.count()-1 {
+    access cellList.o(cellIndex).soma
+    stimList.append( new IClamp(0.5) )
+    stimList.o(cellIndex).amp = 1.15
+    stimList.o(cellIndex).dur = 10000
+}
+
+objref cvode
+cvode = new CVode()
+
+{cvode.cache_efficient(1)}
+{pnm.pc.nthread(1, 0)}
+
+stdinit()
+
+// debugging - report a cell
+objref vvec
+vvec = new Vector()
+if( pnm.myid == 0 ) {
+    print "add report"
+    {access cellList.o(0).soma}
+    vvec.record( &v(0.5), 0.1 )
+}
+
+
+
+/*
+objref rfile
+if( pnm.myid == 0 && vvec.size() > 0 ) {
+    rfile = new File( "trace.txt" )
+    rfile.wopen()
+    for vindex=0, vvec.size()-1 {
+        rfile.printf( "%f\n", vvec.x[vindex] )
+    }
+    rfile.close()
+}
+*/
+
+proc prun() {
+    if (use_coreneuron) {
+		pnm.pc.nrnbbcore_write("coredat")
+		coreConfig.write_sim_config(tstop)
+		coreConfig.psolve_core()
+    } else {
+        tsav = startsw()
+        run(tstop)
+        if (pnm.pc.id == 0) {
+            printf("psolve time %g seconds [tstop %g]\n", startsw() - tsav, tstop)
+        }
+    }
+}
+
+proc spike2file() { localobj outf, s
+    if (use_coreneuron) {
+        return
+    }
+    s = new String()
+    sprint(s.s, "out.dat")
+    outf = new File()
+    if (pnm.pc.id == 0) {outf.wopen(s.s) outf.close }
+    for pnm.serialize() {
+        outf.aopen(s.s)
+        for spikeIndex=0, pnm.spikevec.size()-1 {
+            outf.printf("%.8g\t%d\n", pnm.spikevec.x[spikeIndex], pnm.idvec.x[spikeIndex])
+        }
+        outf.close
+    }
+}
+
+prun()
+spike2file()
+quit()
