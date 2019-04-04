@@ -64,11 +64,6 @@ PROCEDURE psolve_core() {
         #if defined(ENABLE_CORENEURON)
             int argc = 5;
             char *argv[9] = {"", "--read-config", SIM_CONFIG_FILE, "--skip-mpi-finalize", "-mpi", NULL, NULL, NULL, NULL };
-            int argIndex=1;
-            while( ifarg(argIndex) ) {
-                argv[argc] = strdup( hoc_gargstr(argIndex++) );
-                argc++;
-            }
             solve_core(argc, argv);
         #else
             if(nrnmpi_myid == 0) {
