@@ -188,7 +188,9 @@ proc prun() {
 		coreConfig.psolve_core()
     } else {
         tsav = startsw()
-        run(tstop)
+        pnm.pc.set_maxstep(4)
+        pnm.pc.timeout(200)
+        pnm.psolve(tstop)
         if (pnm.pc.id == 0) {
             printf("psolve time %g seconds [tstop %g]\n", startsw() - tsav, tstop)
         }
