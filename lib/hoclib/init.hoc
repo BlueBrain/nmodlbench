@@ -43,6 +43,72 @@ for typeIndex=0, typeCount-1 {
 {typeFile.close()}
 
 
+/**
+ * add 1000 synapses to the given cell : approximately 70% exc, 30% inh
+ * @param $o1 cell object to have synapses placed
+ */
+proc gensyns() { local synIndex, secIndex, nSec  localobj rngloc, rngtype, cell, synapse, nc, ips, tbins_vec, rate_vec, secList
+    cell = $o1
+
+    secList = new List()
+    nSec = 0
+    forsec cell.somatic {
+        secList.append(new SectionRef())
+        nSec = nSec+1
+    }
+    forsec cell.basal {
+        secList.append(new SectionRef())
+        nSec = nSec+1
+    }
+    forsec cell.apical {
+        secList.append(new SectionRef())
+        nSec = nSec+1
+    }
+
+    rngloc = new Random()
+    rngloc.Random123(cell.gid, 101, 386)
+    rngloc.uniform(0,nSec)
+
+    rngtype = new Random()
+    rngtype.Random123(cell.gid, 438, 295)
+    rngtype.uniform(0,1)
+
+    for synIndex=0, 999 {
+        secIndex = int(rngloc.repick())
+        access secList.o(secIndex).sec
+
+        if( rngtype.repick() < 0.7 ) {
+            synapse = new ProbAMPANMDA_EMS(0.5)
+        } else {
+            synapse = new ProbGABAAB_EMS(0.5)
+        }
+        synapse.synapseID = synIndex
+        cell.synlist.append(synapse)
+
+        // enable spont minis
+        ips = new InhPoissonStim(0.5)
+        nc = new NetCon( ips, synapse )
+        nc.delay = 0.1
+        nc.weight = 1.0
+        ips.setRNGs( synIndex+200, cell.gid+250, 300, synIndex+200, cell.gid+250, 350 )
+        //if( cell.gid == 1 ) {
+            //synapse.toggleVerbose()
+        //}
+
+        tbins_vec = new Vector(1)
+        tbins_vec.x[0] = 0.0
+        rate_vec = new Vector(1)
+        rate_vec.x[0] = 0.04
+        ips.setTbins( tbins_vec )
+        ips.setRate( rate_vec )
+
+        cell.synHelperList.append(ips)
+        cell.synHelperList.append(nc)
+        cell.synHelperList.append(tbins_vec)
+        cell.synHelperList.append(rate_vec)
+    }
+}
+
 // cycle through list until N total cells are instantiated
 objref nil, nc
 cellList = new List()
@@ -64,6 +130,10 @@ for cellIndex=0, targetCount-1 {
     pnm.pc.cell( cellIndex+1, nc )
     pnm.spike_record( cellIndex+1 )
     //print pnm.myid, " ", cellIndex+1
+
+    //randomly distribute synapses 70% ProbAMPANMDA, 30% ProbGABAAB
+    // todo - build sectionref array, for given syn count throw random numbers for synapse location (activation? could use finitializer callback)
+    gensyns(cellInst)
 }
 {pnm.pc.multisplit()}
 
