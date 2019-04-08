@@ -83,6 +83,7 @@ proc gensyns() { local synIndex, secIndex, nSec  localobj rngloc, rngtype, cell,
             synapse = new ProbGABAAB_EMS(0.5)
         }
         synapse.synapseID = synIndex
+        synapse.setRNG( cell.gid+250, synIndex+100, 300 )
         cell.synlist.append(synapse)
 
         // enable spont minis
