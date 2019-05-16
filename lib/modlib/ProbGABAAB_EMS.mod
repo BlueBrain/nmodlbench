@@ -395,7 +395,7 @@ static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsprot
 
       // restore stream sequence
       char which = (char)di[4];
-      nrnran123_setseq(*pv, di[3], which);
+      //nrnran123_setseq(*pv, di[3], which);
   }
   //printf("ProbGABAAB_EMS bbcore_read %d %d %d\n", di[0], di[1], di[2]);
   *offset += 5;
