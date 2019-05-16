@@ -148,6 +148,7 @@ for cellIndex=0, targetCount-1 {
     pnm.pc.cell( cellIndex+1, nc )
     pnm.spike_record( cellIndex+1 )
     //print pnm.myid, " ", cellIndex+1
+    if( pnm.myid == 0 ) { print "    Instatiated ", cellIndex, " cell of type ", offset }
 
     //randomly distribute synapses 70% ProbAMPANMDA, 30% ProbGABAAB
     // todo - build sectionref array, for given syn count throw random numbers for synapse location (activation? could use finitializer callback)
@@ -201,13 +202,18 @@ if( pnm.myid == 0 && vvec.size() > 0 ) {
 
 proc prun() {
     if (use_coreneuron) {
-		pnm.pc.nrnbbcore_write("coredat")
-		coreConfig.write_sim_config(tstop)
-		coreConfig.psolve_core()
+	strdef outputPath
+	sprint(outputPath,"coredat-%d-%d", pnm.nhost, targetCount)
+        if( pnm.myid == 0 ) { print "Starting CoreNEURON data generation"}
+	pnm.pc.nrnbbcore_write(outputPath)
+	coreConfig.write_sim_config(outputPath, tstop)
+        if( pnm.myid == 0 ) { print "Starting CoreNEURON simulation"}
+	coreConfig.psolve_core()
     } else {
         tsav = startsw()
         pnm.pc.set_maxstep(4)
         pnm.pc.timeout(200)
+        if( pnm.myid == 0 ) { print "Starting NEURON simulation"}
         pnm.psolve(tstop)
         if (pnm.pc.id == 0) {
             printf("psolve time %g seconds [tstop %g]\n", startsw() - tsav, tstop)

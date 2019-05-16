@@ -49,8 +49,8 @@ VERBATIM
     if(nrnmpi_myid == 0) {
         FILE *fp = open_file(SIM_CONFIG_FILE, "w");
         fprintf(fp, "--outpath .\n");
-        fprintf(fp, "--datpath coredat\n");
-        fprintf(fp, "--tstop %lf\n", *getarg(1));
+        fprintf(fp, "--datpath %s\n", hoc_gargstr(1));
+        fprintf(fp, "--tstop %lf\n", *getarg(2));
         fprintf(fp, "-mpi\n");
         fclose(fp);
     }
