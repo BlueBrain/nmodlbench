@@ -65,7 +65,7 @@ proc connect2target() { //$o1 target point process, $o2 returned NetCon
 }
 
 
-proc init(/* args: morphology_dir, morphology_name */) {
+proc init(/* args: morphology_dir, morphology_name */) { localobj import
   all = new SectionList()
   apical = new SectionList()
   axonal = new SectionList()
@@ -88,7 +88,9 @@ proc init(/* args: morphology_dir, morphology_name */) {
     load_morphology($s2, $s3)
   } else {
     //print $1, $s2, " C060114A5.asc ", " cADpyr_L5TPC " , " static ", " {acceptable} ######\n"
-    load_morphology($s2, "C060114A5.asc")
+    //load_morphology($s2, "C060114A5.asc")
+    import = new Import3d_GUI($o2, 0)
+    import.instantiate(this)
   }
 
   geom_nseg()

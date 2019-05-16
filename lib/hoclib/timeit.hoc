@@ -1,0 +1,168 @@
+/**
+ * @file timeit.hoc
+ * @brief Utility to help with tracking the amount of time spent in certain parts of the simulator 
+ * @author king
+ * @date 2011-02-08
+ * @remark Copyright © BBP/EPFL 2005-2011; All rights reserved. Do not distribute without further notice.
+ */
+
+begintemplate SetPString
+public s
+strdef s
+proc init() {
+	if (numarg()) { s = $s1 }
+}
+endtemplate SetPString
+
+objref setpvec, setpstr, pc
+timeit_verbose=0
+setpvec = new Vector()
+setpstr = new List()
+
+/**
+ * Give access to a ParallelContext object so that timeing info can be collected at end of simulation.
+ * Note that this function can be called anytime provided it is called before prtime.  i.e. It can be called
+ * after all the timing info has been collected
+ *
+ * @param $o1 Parallel Context object
+ */
+proc timeit_init() {
+    pc = $o1
+}
+
+/**
+ * Allow certain nodes (typically node 0) to toggle the display of timeit information during run rather than delaying until end of sim.
+ *
+ * @param $1 Verbose level: 0 for none, 1 for active
+ */
+func timeit_setVerbose() { local prev
+    prev = timeit_verbose
+    timeit_verbose = $1
+    return prev
+}
+
+/**
+ * Record the elapsed time since timeit was previously called, and then keep the current stopwatch time for the next call.
+ * Note that the first time timeit is called, it only does the second part.  If the string argument is provided, the elapsed
+ * time will be output during the call to prtime.  Therefore, calling timeit with no arguments is useful to reinit the timer if
+ * you are not interested in how much time has elapsed doing certain tasks
+ *
+ * e.g.
+ * timeit() // init timer
+ * do stuff...
+ * timeit( "Stuff done" ) // record elapsed time, will be printed at end of sim
+ * boring stuff...
+ * timeit()  // record elapsed time, but nothing output at end; ergo, timer effectively reset
+ * interesting stuff...
+ * timeit( "Interesting done" ) // record elaspsed time, will be printed at end of sim
+ *
+ * @param $s1 Optional label that indicated the recorded elapsed time should be printed during call to prtime
+ */
+proc timeit() {local i
+	setpstr.append(new SetPString())
+	i = setpvec.size-1
+	if (i >= 0) {
+		setpvec.x[i] = startsw() - setpvec.x[i]
+		if (numarg() > 0) { setpstr.object(i).s = $s1 }
+        if ( timeit_verbose == 1 ) { printf("setpvec %d %30s %g\n", i, setpstr.object(i).s, setpvec.x[i]) }
+	}
+	setpvec.append(startsw())
+}
+
+objref timeit_accum_, timeit_start_, timeit_name_
+timeit_accum_ = new Vector()
+timeit_start_ = new Vector()
+timeit_name_ = new List()
+
+/**
+ * Register some event to the timeit system so that it is available for multiple future time recordings.  This
+ * is useful to time things that might happen repeatedly, but not always together. e.g. The time to create a
+ * neuron might be broken down into dicrete tasks to be timed separately.
+ *
+ * @param eventName
+ * @return ID for the event, to be passed into subsequent timeit functions such as timeit_start or timeit_add
+ */
+func timeit_register() {local n
+	timeit_name_.append(new SetPString($s1))
+	timeit_accum_.append(0)
+	timeit_start_.append(0)
+	return timeit_name_.count - 1
+}
+
+/**
+ * Start timing for the indicated event
+ *
+ * @param $1 ID for an event given to timeit_register
+ */
+proc timeit_start() {
+	timeit_start_.x[$1] = startsw()
+}
+
+/**
+ * Stop timing some event, adding the elapsed time to a running total
+ *
+ * @param $1 ID for an event given to timeit_register
+ */
+proc timeit_add() {
+	timeit_accum_.x[$1] += startsw() - timeit_start_.x[$1]
+    if ( timeit_verbose == 1 ) { printf("accum %d %30s %g\n", $1, timeit_name_.object($1).s, timeit_accum_.x[$1]) }
+}
+
+/**
+ * Callback function to be used to have non-root nodes send gathered timimg data to root node for analysis
+ */
+proc posttimeit() {
+	setpvec.append(timeit_accum_)
+	pc.post("posttimeit", pc.id, setpvec)
+}
+
+/**
+ * Collect timing info and compute min and max time spent noting which nodes are
+ * responsible.
+ */
+proc prtime() {local i, j, id, n  localobj tv, mintv, idmin, idmax
+    if( object_id(pc,1) == -1 ) {
+        print "timeit error: Cannot gather statistics without ParallelContext object.  Call timeit_init before prtime"
+        return
+    }
+	setpvec.append(timeit_accum_)
+	tv = setpvec.c
+	mintv = setpvec.c
+	idmin = tv.c
+	idmin.fill(pc.id)
+	idmax = idmin.c
+
+	pc.context("posttimeit()\n")
+	for i=0, pc.nhost-2 {
+		pc.take("posttimeit", &id, tv)
+		for j=0, setpvec.size-1 {
+			if (setpvec.x[j] < tv.x[j]) {
+				setpvec.x[j] = tv.x[j]
+				idmax.x[j] = id
+			}
+			if (mintv.x[j] > tv.x[j]) {
+				mintv.x[j] = tv.x[j]
+				idmin.x[j] = id
+			}
+		}
+	}
+	n = setpvec.size - timeit_accum_.size
+    
+    //print header
+    if( setpvec.size > 0 ) {
+        printf("       %30s %5s %8s %5s %8s\n", "Event Label", "Node", "MinTime", "Node", "MaxTime" )
+    }
+    
+    //print collected statistics
+	for i=0, n-1 {
+		if (strcmp(setpstr.object(i).s, "") != 0) {
+printf("timeit %30s %5d %8.2f %5d %8.2f\n", \
+setpstr.object(i).s, idmin.x[i], mintv.x[i], idmax.x[i], setpvec.x[i])
+		}
+	}
+	for i=0, timeit_name_.count-1 {
+		j = i + n
+printf("accum  %30s %5d %8.2f %5d %8.2f\n", \
+timeit_name_.object(i).s, idmin.x[j], mintv.x[j], idmax.x[j], setpvec.x[j])
+	}
+}

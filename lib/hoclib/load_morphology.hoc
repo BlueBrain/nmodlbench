@@ -1,0 +1,45 @@
+{load_file("import3d.hoc")}
+
+obfunc load_morphology(/* morphology_dir, morphology_name, morphLookup */) {localobj morph, import, sf, extension, nil, morphLookup
+
+  morphLookup = $o3
+  morph = morphLookup.get( $s2, nil )
+  if( morph != nil ) {
+      //print "reuse ", $s2
+      return morph
+  }
+
+  // else
+  //print "init load ", $s2
+  strdef morph_path
+  sprint(morph_path, "%s/%s.asc", $s1, $s2)
+
+  sf = new StringFunctions()
+  extension = new String()
+
+  sscanf(morph_path, "%s", extension.s)
+  sf.right(extension.s, sf.len(extension.s)-4)
+
+  if(strcmp(extension.s, ".ASC") == 0 ){
+    extension.s = ".asc"
+    sf.left(morph_path, sf.len(morph_path)-3)
+    sprint(morph_path,"%s%s",morph_path,"asc")
+    print "USING LOWERCASE EXTENSION", morph_path
+  }
+
+  if( strcmp(extension.s, ".asc") == 0 ) {
+    morph = new Import3d_Neurolucida3()
+  } else if( strcmp(extension.s, ".swc" ) == 0) {
+    morph = new Import3d_SWC_read()
+  } else {
+    printf(extension.s)
+    printf("Unsupported file format: Morphology file has to end with .asc or .swc" )
+    quit()
+  }
+
+  morph.quiet = 1
+  morph.input(morph_path)
+  morphLookup.setdefault($s2,morph)
+  return morph
+}
+

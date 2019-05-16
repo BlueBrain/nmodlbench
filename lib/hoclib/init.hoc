@@ -1,6 +1,8 @@
 {load_file("nrngui.hoc")}
 {load_file("netparmpi.hoc")}
 {load_file("defvar.hoc")}
+{load_file("timeit.hoc")}
+{load_file("load_morphology.hoc")}
 
 default_var("arg_tstop", 50)
 default_var("arg_target_count", 22)
@@ -12,10 +14,14 @@ tstop = arg_tstop
 objref pnm, coreConfig
 targetCount = arg_target_count
 pnm = new ParallelNetManager(targetCount)
+
+//timeit_init(pnm.pc)
+//{timeit_setVerbose(pnm.myid==0)}
+
 coreConfig = new CoreConfig()
 
 objref typeFile, typeString
-objref morphList, etypeList, cellList, cellInst
+objref morphList, etypeList, cellList, cellInst, morph
 
 typeFile = new File("All/melist.txt")
 //typeFile = new File("SSCx/melist.txt")
@@ -26,6 +32,11 @@ morphList = new List()
 etypeList = new List()
 
 typeString = new String()
+
+// to speed up loading cells, keep list of those already loaded
+objref morphLookup
+morphLookup = new PythonObject()
+morphLookup = morphLookup.dict()
 
 // need HOC_LIBRARY_PATH to include "x/selected_hoc"
 typeCount = typeFile.scanvar()
@@ -114,17 +125,23 @@ proc gensyns() { local synIndex, secIndex, nSec  localobj rngloc, rngtype, cell,
 objref nil, nc
 cellList = new List()
 
+//timeit( "reset" )
 for cellIndex=0, targetCount-1 {
     offset = cellIndex % typeCount
     if( cellIndex % pnm.nhost != pnm.myid ) {
         continue
     }
+    
+    // assume all morphologies are 'asc' to simplify this code
+    morph = load_morphology( "All/morphologies/", morphList.o(offset).s, morphLookup )
+    //morph = load_morphology( "SSCx/morphologies/", morphList.o(offset).s, morphLookup )
+    //morph = load_morphology( "Hippo/morphologies/", morphList.o(offset).s, morphLookup )
 
-    sprint( typeString.s, "cellInst = new %s( %d, \"All/morphologies/\", \"%s.asc\" )", etypeList.o(offset).s, cellIndex+1, morphList.o(offset).s )
-    //sprint( typeString.s, "cellInst = new %s( %d, \"SSCx/morphologies/\", \"%s.asc\" )", etypeList.o(offset).s, cellIndex+1, morphList.o(offset).s )
-    //sprint( typeString.s, "cellInst = new %s( %d, \"Hippo/morphologies/\", \"%s.asc\" )", etypeList.o(offset).s, cellIndex+1, morphList.o(offset).s )
+    sprint( typeString.s, "cellInst = new %s( %d, %s )", etypeList.o(offset).s, cellIndex+1, morph )
+
     execute1( typeString.s )
     cellList.append( cellInst )
+    //timeit("add cell")
 
     cellInst.connect2target( nil, nc )
     pnm.set_gid2node(cellIndex+1, pnm.myid)
@@ -135,6 +152,7 @@ for cellIndex=0, targetCount-1 {
     //randomly distribute synapses 70% ProbAMPANMDA, 30% ProbGABAAB
     // todo - build sectionref array, for given syn count throw random numbers for synapse location (activation? could use finitializer callback)
     gensyns(cellInst)
+    //timeit("add syns")
 }
 {pnm.pc.multisplit()}
 
