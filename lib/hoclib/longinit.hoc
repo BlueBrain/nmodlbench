@@ -1,0 +1,169 @@
+{load_file("nrngui.hoc")}
+{load_file("netparmpi.hoc")}
+{load_file("defvar.hoc")}
+{load_file("timeit.hoc")}
+{load_file("load_morphology.hoc")}
+
+default_var("arg_tstop", 50)
+default_var("arg_target_count", 22)
+default_var("arg_coreneuron", 0)
+
+use_coreneuron = arg_coreneuron
+tstop = arg_tstop
+targetCount = arg_target_count
+
+objref pnm, coreConfig
+pnm = new ParallelNetManager(targetCount)
+coreConfig = new CoreConfig()
+
+objref cellList, cellInst
+
+/**
+ * add 3000 synapses to the given cell : approximately 80% exc, 20% inh
+ * @param $o1 cell object to have synapses placed
+ */
+proc gensyns() { local synIndex, secIndex, nSec  localobj rngloc, rngtype, cell, synapse, nc, ips, tbins_vec, rate_vec, secList
+    cell = $o1
+
+    secList = new List()
+    nSec = 0
+    forsec cell.somatic {
+        secList.append(new SectionRef())
+        nSec = nSec+1
+    }
+    forsec cell.basal {
+        secList.append(new SectionRef())
+        nSec = nSec+1
+    }
+    forsec cell.apical {
+        secList.append(new SectionRef())
+        nSec = nSec+1
+    }
+
+    rngloc = new Random()
+    rngloc.Random123(cell.gid, 101, 386)
+    rngloc.uniform(0,nSec)
+
+    rngtype = new Random()
+    rngtype.Random123(cell.gid, 438, 295)
+    rngtype.uniform(0,1)
+
+    for synIndex=0, 500 {
+        secIndex = int(rngloc.repick())
+        access secList.o(secIndex).sec
+
+        if( rngtype.repick() < 0.6 ) {
+            synapse = new ProbAMPANMDA_EMS(0.5)
+        } else {
+            synapse = new ProbGABAAB_EMS(0.5)
+        }
+        synapse.synapseID = synIndex
+        synapse.setRNG( cell.gid+250, synIndex+100, 300 )
+        cell.synlist.append(synapse)
+
+        // enable spont minis
+        ips = new InhPoissonStim(0.5)
+        nc = new NetCon( ips, synapse )
+        nc.delay = 0.1
+        nc.weight = 1.0
+        ips.setRNGs( synIndex+200, cell.gid+250, 300, synIndex+200, cell.gid+250, 350 )
+
+        tbins_vec = new Vector(1)
+        tbins_vec.x[0] = 0.0
+        rate_vec = new Vector(1)
+        rate_vec.x[0] = 0.04
+        ips.setTbins( tbins_vec )
+        ips.setRate( rate_vec )
+
+        cell.synHelperList.append(ips)
+        cell.synHelperList.append(nc)
+        cell.synHelperList.append(tbins_vec)
+        cell.synHelperList.append(rate_vec)
+    }
+}
+
+proc prun() {
+    if (use_coreneuron) {
+        strdef outputPath
+        sprint(outputPath,"long-coredat-%d-%d", pnm.nhost, targetCount)
+        if( pnm.myid == 0 ) { print "Starting CoreNEURON data generation"}
+        pnm.pc.nrnbbcore_write(outputPath)
+        coreConfig.write_sim_config(outputPath, tstop)
+        if( pnm.myid == 0 ) { print "Starting CoreNEURON simulation"}
+	coreConfig.psolve_core()
+    } else {
+        tsav = startsw()
+        pnm.pc.set_maxstep(4)
+        pnm.pc.timeout(200)
+        pnm.psolve(tstop)
+        if (pnm.pc.id == 0) {
+            printf("psolve time %g seconds [tstop %g]\n", startsw() - tsav, tstop)
+        }
+    }
+}
+
+proc spike2file() { localobj outf, s
+    if (use_coreneuron) {
+        return
+    }
+    s = new String()
+    sprint(s.s, "out.dat")
+    outf = new File()
+    if (pnm.pc.id == 0) {outf.wopen(s.s) outf.close }
+    for pnm.serialize() {
+        outf.aopen(s.s)
+        for spikeIndex=0, pnm.spikevec.size()-1 {
+            outf.printf("%.8g\t%d\n", pnm.spikevec.x[spikeIndex], pnm.idvec.x[spikeIndex])
+        }
+        outf.close
+    }
+}
+
+
+// cycle through list until N total cells are instantiated
+objref nil, nc
+cellList = new List()
+
+{load_file("longcell.hoc")}
+
+for cellIndex=0, targetCount-1 {
+    if( cellIndex % pnm.nhost != pnm.myid ) {
+        continue
+    }
+    
+    cellInst = new LongCell(cellIndex+1,400)
+    cellList.append( cellInst )
+
+    cellInst.connect2target( nil, nc )
+    pnm.set_gid2node(cellIndex+1, pnm.myid)
+    pnm.pc.cell( cellIndex+1, nc )
+    pnm.spike_record( cellIndex+1 )
+
+    //randomly distribute synapses 70% ProbAMPANMDA, 30% ProbGABAAB
+    // todo - build sectionref array, for given syn count throw random numbers for synapse location (activation? could use finitializer callback)
+    gensyns(cellInst)
+}
+{pnm.pc.multisplit()}
+
+if( pnm.myid == 0 ) { print "done cells" }
+
+// stimulus
+objref stimList
+stimList = new List()
+for cellIndex=0, cellList.count()-1 {
+    access cellList.o(cellIndex).soma
+    stimList.append( new IClamp(0.5) )
+    stimList.o(cellIndex).amp = 1.15
+    stimList.o(cellIndex).dur = 10000
+}
+
+objref cvode
+cvode = new CVode()
+
+{cvode.cache_efficient(1)}
+{pnm.pc.nthread(1, 0)}
+
+stdinit()
+prun()
+spike2file()
+quit()

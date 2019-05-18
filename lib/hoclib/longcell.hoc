@@ -1,0 +1,133 @@
+begintemplate LongCell
+
+public init, soma, dend
+public gid
+public connect2target
+
+create soma[1], dend[1], apic[1], axon[1], myelin[1]
+
+public all, somatic, apical, axonal, basal, myelinated, APC
+objref all, somatic, apical, axonal, basal, myelinated, APC
+
+public CellRef, synHelperList, synlist
+objref this, CellRef, segCounts, ASCIIrpt, synHelperList, synlist
+
+proc init() { local ndend, napic, secIndex
+  all = new SectionList()
+  apical = new SectionList()
+  axonal = new SectionList()
+  basal = new SectionList()
+  somatic = new SectionList()
+  myelinated = new SectionList()
+
+  synHelperList = new List()
+  synlist = new List()
+
+    gid = $1
+    ndend = $2
+    create soma, dend[ndend]
+
+    connect dend[0](0), soma(0)
+    for secIndex=0,ndend-2 {
+        connect dend[secIndex+1](1), dend[secIndex](0)
+    }
+
+    access soma
+    somatic.append()
+    all.append()
+    for secIndex=0,ndend-1 {
+        access dend[secIndex]
+        basal.append()
+        all.append()
+    }
+
+    insertChannel()
+    biophys()
+}
+
+/*!
+ * @param $o1 NetCon source (can be nil)
+ * @param $o2 Variable where generated NetCon will be placed
+ */
+proc connect2target() { //$o1 target point process, $o2 returned NetCon
+  soma $o2 = new NetCon(&v(1), $o1)
+  $o2.threshold = -30
+}
+
+/*
+ * Assignment of mechanism values based on distance from the soma
+ * Matches the BluePyOpt method
+ */
+proc distribute_distance(){local x localobj sl
+  strdef stmp, distfunc, mech
+
+  sl = $o1
+  mech = $s2
+  distfunc = $s3
+  this.soma[0] distance(0, 0.5)
+  sprint(distfunc, "%%s %s(%%f) = %s", mech, distfunc)
+  forsec sl for(x, 0) {
+    sprint(stmp, distfunc, secname(), x, distance(x))
+    execute(stmp)
+  }
+}
+
+proc insertChannel() {
+  forsec this.all {
+    insert pas
+    insert hh
+    insert cacum
+    insert cacumb
+    insert cagk
+    insert Ca_HVA2
+    insert cal
+    insert Ca_LVAst
+    insert can
+    insert cat
+    insert hd
+    insert Ih
+    insert kad
+    insert kap
+    insert kca
+    insert kd2
+    insert kdb
+    insert kdr
+    insert kdrb
+    insert CaDynamics_DC0
+    insert KdShu2007
+    insert kmb
+    insert K_Pst
+    insert K_Tst
+    insert na3
+    insert Nap_Et2
+    insert NaTg
+    insert nax
+    insert pas
+    insert SK_E2
+    insert SKv3_1
+  }
+  forsec this.basal {
+
+  }
+  forsec this.somatic {
+    insert hh
+  }
+}
+
+proc biophys() {
+  forsec this.all {
+    Ra = 100
+    g_pas = 4.7051946481499811e-05
+    e_pas = -79.603749561469684
+  }
+  forsec this.basal {
+  }
+  forsec this.somatic {
+    gnabar_hh=0.25
+    gl_hh = .0001666
+    el_hh = -60.0
+  }
+}
+
+endtemplate LongCell
+
