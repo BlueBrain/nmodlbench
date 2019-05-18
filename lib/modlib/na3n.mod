@@ -9,7 +9,7 @@ NEURON {
 	USEION na READ ena WRITE ina
     USEION ttx READ ttxo, ttxi VALENCE 1
 	RANGE  gbar, ar, sh
-	RANGE minf, hinf, mtau, htau, sinf, taus
+	RANGE minf, hinf, mtau, htau, sinff, taus
 	RANGE qinf, thinf
 }
 
@@ -65,7 +65,7 @@ ASSIGNED {
 	thegna		(mho/cm2)
 	minf 		hinf 		
 	mtau (ms)	htau (ms) 	
-	sinf (ms)	taus (ms)
+	sinff (ms)	taus (ms)
 }
  
 
@@ -83,7 +83,7 @@ INITIAL {
         mtau = 1e-12
         hinf = 1.0
         htau = 1e-12
-        sinf = 0.0
+        sinff = 0.0
         taus = 1e-12
     } else {
         trates(v,ar,sh)      
@@ -91,7 +91,7 @@ INITIAL {
 
 	m=minf  
 	h=hinf
-	s=sinf
+	s=sinff
 }
 
 
@@ -115,7 +115,7 @@ DERIVATIVE states {
         mtau = 1e-12
         hinf = 1.0
         htau = 1e-12
-        sinf = 0.0
+        sinff = 0.0
         taus = 1e-12
     } else {
         trates(v,ar,sh)      
@@ -123,7 +123,7 @@ DERIVATIVE states {
 
     m' = (minf-m)/mtau
     h' = (hinf-h)/htau
-    s' = (sinf - s)/taus
+    s' = (sinff - s)/taus
 }
 
 PROCEDURE trates(vm,a2,sh2) {  
@@ -141,7 +141,7 @@ PROCEDURE trates(vm,a2,sh2) {
         if (htau<hmin) {htau=hmin}
 	hinf = 1/(1+exp((vm-thinf-sh2)/qinf))
 	c=alpv(vm)
-        sinf = c+a2*(1-c)
+        sinff = c+a2*(1-c)
         taus = bets(vm)/(a0s*(1+alps(vm)))
         if (taus<smax) {taus=smax}
 }
