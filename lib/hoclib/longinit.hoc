@@ -85,7 +85,8 @@ proc gensyns() { local synIndex, secIndex, nSec  localobj rngloc, rngtype, cell,
 proc prun() {
     if (use_coreneuron) {
         strdef outputPath
-        sprint(outputPath,"long-coredat-%d-%d", pnm.nhost, targetCount)
+        //sprint(outputPath,"long-coredat-%d-%d", pnm.nhost, targetCount)
+        sprint(outputPath,"coredat")
         if( pnm.myid == 0 ) { print "Starting CoreNEURON data generation"}
         pnm.pc.nrnbbcore_write(outputPath)
         coreConfig.write_sim_config(outputPath, tstop)
