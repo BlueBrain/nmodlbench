@@ -132,7 +132,7 @@ for cellIndex=0, targetCount-1 {
     if( cellIndex % pnm.nhost != pnm.myid ) {
         continue
     }
-    
+
     strdef mFilePath
     sprint(mFilePath,"%s/All/morphologies/", arg_datapath)
 
@@ -203,14 +203,20 @@ if( pnm.myid == 0 && vvec.size() > 0 ) {
 
 proc prun() {
     if (use_coreneuron) {
-	strdef outputPath
-	//sprint(outputPath,"coredat-%d-%d", pnm.nhost, targetCount)
-	sprint(outputPath,"coredat")
-        if( pnm.myid == 0 ) { print "Starting CoreNEURON data generation"}
-	pnm.pc.nrnbbcore_write(outputPath)
-	coreConfig.write_sim_config(outputPath, tstop)
-        if( pnm.myid == 0 ) { print "Starting CoreNEURON simulation"}
-	coreConfig.psolve_core()
+        strdef outputPath
+        //sprint(outputPath,"coredat-%d-%d", pnm.nhost, targetCount)
+        sprint(outputPath,"coredat")
+        if( pnm.myid == 0 ) {
+            print "Starting CoreNEURON data generation"
+        }
+        pnm.pc.nrnbbcore_write(outputPath)
+        coreConfig.write_sim_config(outputPath, tstop)
+        if( pnm.myid == 0 ) {
+            print "Starting CoreNEURON simulation"
+        }
+        strdef arg
+        sprint(arg, "--tstop %lf --mpi", tstop)
+        pnm.pc.nrncore_run(arg)
     } else {
         tsav = startsw()
         pnm.pc.set_maxstep(4)
