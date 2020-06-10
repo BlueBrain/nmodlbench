@@ -91,7 +91,9 @@ proc prun() {
         pnm.pc.nrnbbcore_write(outputPath)
         coreConfig.write_sim_config(outputPath, tstop)
         if( pnm.myid == 0 ) { print "Starting CoreNEURON simulation"}
-	coreConfig.psolve_core()
+        strdef arg
+        sprint(arg, "--tstop %lf --mpi", tstop)
+        pnm.pc.nrncore_run(arg)
     } else {
         tsav = startsw()
         pnm.pc.set_maxstep(4)
