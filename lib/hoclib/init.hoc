@@ -126,12 +126,16 @@ proc gensyns() { local synIndex, secIndex, nSec  localobj rngloc, rngtype, cell,
 objref nil, nc
 cellList = new List()
 
+local_cell_index = 0
+
 //timeit( "reset" )
 for cellIndex=0, targetCount-1 {
-    offset = cellIndex % typeCount
     if( cellIndex % pnm.nhost != pnm.myid ) {
         continue
     }
+    // distribute cell type uniformly in every rank
+    offset = local_cell_index % typeCount
+    local_cell_index = local_cell_index + 1
 
     strdef mFilePath
     sprint(mFilePath,"%s/All/morphologies/", arg_datapath)
