@@ -4,12 +4,16 @@
 {load_file("timeit.hoc")}
 {load_file("load_morphology.hoc")}
 
-default_var("arg_tstop", 50)
+default_var("arg_tstop", 100)
 default_var("arg_target_count", 22)
 default_var("arg_coreneuron", 0)
+default_var("arg_coreneuron_filemode", 0)
+default_var("arg_dump_coreneuron_model", 0)
 default_var("arg_datapath", ".")
 
 use_coreneuron = arg_coreneuron
+use_coreneuron_filemode = arg_coreneuron_filemode
+dump_coreneuron_model = arg_dump_coreneuron_model
 tstop = arg_tstop
 
 objref pnm, coreConfig
@@ -205,38 +209,46 @@ if( pnm.myid == 0 && vvec.size() > 0 ) {
 }
 */
 
-proc prun() {
-    if (use_coreneuron) {
+proc prun() { localobj py_obj
+
+    // dump model to file
+    if (use_coreneuron_filemode || dump_coreneuron_model) {
         strdef outputPath
-        //sprint(outputPath,"coredat-%d-%d", pnm.nhost, targetCount)
         sprint(outputPath,"coredat")
         if( pnm.myid == 0 ) {
             print "Starting CoreNEURON data generation"
         }
         pnm.pc.nrnbbcore_write(outputPath)
-        coreConfig.write_sim_config(outputPath, tstop)
-        if( pnm.myid == 0 ) {
-            print "Starting CoreNEURON simulation"
+
+        // if only model dump mode then finish without running sim
+        if (dump_coreneuron_model && pnm.pc.id == 0) {
+            print "dump_coreneuron_model=1, finishing execution without simulation\n"
+            return
         }
-        strdef arg
-        sprint(arg, "--tstop %lf --mpi", tstop)
-        pnm.pc.nrncore_run(arg)
-    } else {
-        tsav = startsw()
-        pnm.pc.set_maxstep(4)
-        pnm.pc.timeout(200)
-        if( pnm.myid == 0 ) { print "Starting NEURON simulation"}
-        pnm.psolve(tstop)
-        if (pnm.pc.id == 0) {
-            printf("psolve time %g seconds [tstop %g]\n", startsw() - tsav, tstop)
+    }
+
+    if( pnm.myid == 0 ) { print "Starting Simulation"}
+
+    if (use_coreneuron) {
+        if (!nrnpython("from neuron import coreneuron")) {
+            execerror("Python not available, can not import coreneuron module\n")
         }
+        py_obj = new PythonObject()
+        py_obj.coreneuron.enable = 1
+        py_obj.coreneuron.filemode = use_coreneuron_filemode
+    }
+
+    tsav = startsw()
+    pnm.pc.set_maxstep(4)
+    pnm.pc.timeout(200)
+    pnm.psolve(tstop)
+
+    if (pnm.pc.id == 0) {
+        printf("psolve time %g seconds [tstop %g]\n", startsw() - tsav, tstop)
     }
 }
 
 proc spike2file() { localobj outf, s
-    if (use_coreneuron) {
-        return
-    }
     s = new String()
     sprint(s.s, "out.dat")
     outf = new File()
@@ -251,5 +263,7 @@ proc spike2file() { localobj outf, s
 }
 
 prun()
-spike2file()
+if (!dump_coreneuron_model) {
+    spike2file()
+}
 quit()
