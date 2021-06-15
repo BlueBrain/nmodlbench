@@ -10,6 +10,15 @@ export BUILD_DIR=$BASE_DIR/build
 export INSTALL_DIR=$BASE_DIR/install
 mkdir -p $SOURCE_DIR $INSTALL_DIR
 
+# Re-install -> Do not delete x86_64
+# To re-install provide just an arbitrary arguement
+if [ $# -eq 0 ]
+then
+    REINSTALL=0
+else
+    REINSTALL=1
+fi
+
 # =============================================================================
 # 1. Setting source & build dependencies
 # =============================================================================
@@ -20,13 +29,13 @@ setup_modules() {
     printf "\n----------------- SETTING MODULES --------------\n"
     module purge
     module load unstable
-    module load cmake/3.15.3 flex/2.6.3 bison/3.0.5 python/3.7.4 hpe-mpi/2.21
+    module load cmake git flex bison python-dev hpe-mpi
 }
 
-# TODO Adjuct compiler loading according to your system
+# TODO Adjust compiler loading according to your system
 
 load_gcc() {
-    module load gcc/8.3.0
+    module load gcc
     export CC=$(which gcc)
     export CXX=$(which g++)
 }
@@ -38,7 +47,7 @@ unload_gcc() {
 }
 
 load_intel() {
-    module load intel/19.0.4
+    module load intel
     export CC=$(which icc)
     export CXX=$(which icpc)
 }
@@ -50,13 +59,13 @@ unload_intel() {
 }
 
 load_pgi_cuda() {
-    module load pgi/19.10 cuda/10.1.243
+    module load nvhpc cuda
     export CC=$(which pgcc)
     export CXX=$(which pgc++)
 }
 
 unload_pgi_cuda() {
-    module unload pgi cuda
+    module unload nvhpc cuda
     unset CC
     unset CXX
 }
@@ -89,9 +98,8 @@ setup_python_packages() {
     pip3 install Jinja2 PyYAML pytest "sympy<1.6"
 }
 
-
 # =============================================================================
-# 2. Installing base softwares
+# 2. Installing base software
 # =============================================================================
 
 # Install neuron which is used for building network model. This could be built with GNU
@@ -109,8 +117,8 @@ install_neuron() {
         -DPYTHON_EXECUTABLE=$(which python3) \
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
-        -DCMAKE_BUILD_TYPE=Debug
-    make -j16 && make install
+        -DCMAKE_BUILD_TYPE=Release
+    make -j && make install
     popd
     unload_gcc
 }
@@ -126,7 +134,7 @@ install_nmodl() {
         -DPYTHON_EXECUTABLE=$(which python3) \
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCMAKE_BUILD_TYPE=Release
-    make -j16 && make install
+    make -j && make install
     popd
     unload_gcc
 }
@@ -135,17 +143,29 @@ install_nmodl() {
 # 3. Installing simulation engine
 # =============================================================================
 
-# CoreNEURON is used as simulation engine and should be compiled with optimal flags.
-# Here we build two configurations with vendor compilers : Intel compiler for CPU
-# build and PGI compiler for OpenACC based GPU build. Note that Intel compiler is
-# typically used on Intel & AMD platforms to enable auto-vectorisation.
-
-install_coreneuron_cpu()  {
-    printf "\n----------------- INSTALL CORENEURON FOR CPU --------------\n"
+install_coreneuron_cpu_mod2c() {
+    printf "\n----------------- INSTALL CORENEURON FOR CPU (MOD2C) --------------\n"
     load_intel
-    mkdir -p $BUILD_DIR/cpu && pushd $BUILD_DIR/cpu
+    mkdir -p $BUILD_DIR/cpu_mod2c && pushd $BUILD_DIR/cpu_mod2c
     cmake $SOURCE_DIR/nrn/external/coreneuron \
-        -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/CPU \
+        -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/CPU_MOD2C \
+        -DCORENRN_ENABLE_UNIT_TESTS=OFF \
+        -DCORENRN_ENABLE_OPENMP=OFF \
+        -DCORENRN_ENABLE_NMODL=OFF \
+        -DCMAKE_C_COMPILER=$CC \
+        -DCMAKE_CXX_COMPILER=$CXX \
+        -DCMAKE_BUILD_TYPE=Release
+    make -j && make install
+    popd
+    unload_intel
+}
+
+install_coreneuron_cpu_nmodl() {
+    printf "\n----------------- INSTALL CORENEURON FOR CPU (NMODL) --------------\n"
+    load_intel
+    mkdir -p $BUILD_DIR/cpu_nmodl && pushd $BUILD_DIR/cpu_nmodl
+    cmake $SOURCE_DIR/nrn/external/coreneuron \
+        -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/CPU_NMODL \
         -DCORENRN_ENABLE_UNIT_TESTS=OFF \
         -DCORENRN_ENABLE_OPENMP=OFF \
         -DCORENRN_ENABLE_NMODL=ON \
@@ -154,27 +174,45 @@ install_coreneuron_cpu()  {
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCORENRN_NMODL_FLAGS='sympy --analytic' \
         -DCMAKE_BUILD_TYPE=Release
-    make -j16 && make install
+    make -j && make install
     popd
     unload_intel
 }
 
-install_coreneuron_gpu()  {
-    printf "\n----------------- INSTALL CORENEURON FOR GPU --------------\n"
+install_coreneuron_gpu_mod2c()  {
+    printf "\n----------------- INSTALL CORENEURON FOR GPU (MOD2C) --------------\n"
     load_pgi_cuda
-    mkdir -p $BUILD_DIR/gpu && pushd $BUILD_DIR/gpu
+    mkdir -p $BUILD_DIR/gpu_mod2c && pushd $BUILD_DIR/gpu_mod2c
     cmake $SOURCE_DIR/nrn/external/coreneuron \
-        -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/GPU \
+        -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/GPU_MOD2C \
+        -DCORENRN_ENABLE_UNIT_TESTS=OFF \
+        -DCORENRN_ENABLE_OPENMP=OFF \
+        -DCORENRN_ENABLE_GPU=ON \
+        -DCORENRN_ENABLE_NMODL=OFF \
+        -DCMAKE_C_COMPILER=$CC \
+        -DCMAKE_CXX_COMPILER=$CXX \
+        -DCMAKE_BUILD_TYPE=Release
+    make -j && make install
+    popd
+    unload_pgi_cuda
+}
+
+install_coreneuron_gpu_nmodl()  {
+    printf "\n----------------- INSTALL CORENEURON FOR GPU (NMODL) --------------\n"
+    load_pgi_cuda
+    mkdir -p $BUILD_DIR/gpu_nmodl && pushd $BUILD_DIR/gpu_nmodl
+    cmake $SOURCE_DIR/nrn/external/coreneuron \
+        -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/GPU_NMODL \
         -DCORENRN_ENABLE_UNIT_TESTS=OFF \
         -DCORENRN_ENABLE_OPENMP=OFF \
         -DCORENRN_ENABLE_GPU=ON \
         -DCORENRN_ENABLE_NMODL=ON \
-        #-DCORENRN_NMODL_FLAGS='sympy --analytic' \ # sympy disabled for gpu build due to issues with eigen+openacc
         -DCORENRN_NMODL_DIR=$INSTALL_DIR/NMODL \
+        -DCORENRN_NMODL_FLAGS='sympy --analytic' \ # given the resolved issues with eigen+openacc
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCMAKE_BUILD_TYPE=Release
-    make -j16 && make install
+    make -j && make install
     popd
     unload_pgi_cuda
 }
@@ -194,37 +232,57 @@ install_coreneuron_ispc() {
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCORENRN_ENABLE_ISPC=ON \
         -DCORENRN_NMODL_FLAGS="sympy --analytic" \
-        -DCMAKE_BUILD_TYPE=Debug
-    make -j16 && make install
+        -DCMAKE_BUILD_TYPE=Release
+    make -j && make install
     popd
     unload_gcc
     unload_ispc
 }
 
 run_nrnivmodl() {
-    # Enter the channel benchmark directory
-    cd $BASE_DIR/channels
+    cd $INSTALL_DIR/NRN
     # Delete any executables from previous runs
-    rm -rf x86_64 enginemech.o
+    if [ $REINSTALL == 0 ]
+    then
+        rm -rf x86_64 enginemech.o
+    fi
     # Run nrnivmodl to generate the NEURON executable
-    $INSTALL_DIR/NRN/bin/nrnivmodl lib/modlib
+    bin/nrnivmodl $BASE_DIR/channels/lib/modlib
 }
 
 # Provide the BUILD_TYPE as argument
 run_nrnivmodl_core() {
-    # Enter the channel benchmark directory
-    cd $BASE_DIR/channels
     BUILD_TYPE=$1
+    cd $INSTALL_DIR/$BUILD_TYPE
+    # Delete any executables from previous runs
+    if [ $REINSTALL == 0 ]
+    then
+        rm -rf x86_64 enginemech.o
+    fi
     # Run nrnivmodl-core to generate the CoreNEURON library
-    $INSTALL_DIR/$BUILD_TYPE/bin/nrnivmodl-core lib/modlib
+    bin/nrnivmodl-core $BASE_DIR/channels/lib/modlib
 }
 
+# 1. Setting source & build dependencies
 setup_source
 setup_modules
 setup_python_packages
+
+# 2. Installing base software
 install_neuron
 install_nmodl
-install_coreneuron_ispc
-run_nrnivmodl
-run_nrnivmodl_core ISPC
 
+# 3. Installing simulation engine
+install_coreneuron_cpu_mod2c
+install_coreneuron_cpu_nmodl
+install_coreneuron_gpu_mod2c
+#install_coreneuron_gpu_nmodl
+install_coreneuron_ispc
+
+# 4. Generate library
+run_nrnivmodl
+run_nrnivmodl_core CPU_MOD2C
+run_nrnivmodl_core CPU_NMODL
+run_nrnivmodl_core GPU_MOD2C
+#run_nrnivmodl_core GPU_NMODL
+run_nrnivmodl_core ISPC

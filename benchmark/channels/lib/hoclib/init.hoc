@@ -221,8 +221,10 @@ proc prun() { localobj py_obj
         pnm.pc.nrnbbcore_write(outputPath)
 
         // if only model dump mode then finish without running sim
-        if (dump_coreneuron_model && pnm.pc.id == 0) {
-            print "dump_coreneuron_model=1, finishing execution without simulation\n"
+        if (dump_coreneuron_model) {
+            if (pnm.pc.id == 0) {
+                print "dump_coreneuron_model=1, finishing execution without simulation\n"
+            }
             return
         }
     }
