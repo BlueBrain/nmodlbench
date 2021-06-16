@@ -1,7 +1,8 @@
 #!/bin/bash
 
 #SBATCH --account=proj16
-#SBATCH --time=08:00:00
+# SBATCH --partition=prod
+#SBATCH --time=01:00:00
 
 #SBATCH --nodes=1
 #SBATCH --constraint=volta
@@ -13,7 +14,7 @@
 #SBATCH --mem=0
 
 # Stop on error
-set -e
+#set -e
 
 # =============================================================================
 # SIMULATION PARAMETERS TO EDIT
@@ -38,23 +39,28 @@ export NUM_CELLS=$((360*22))
 # Enter the channel benchmark directory
 cd $BASE_DIR/channels
 
+rm -rf coredat_cpu
+rm NRN.dat CPU_MOD2C.dat CPU_NMODL.dat ISPC.dat
+rm NRN.log CPU_MOD2C.log CPU_NMODL.log ISPC.log
+
 echo "----------------- NEURON SIM (CPU) ----------------"
 srun dplace ../install/NRN/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc 2>&1 | tee NRN.log
 mv out.dat NRN.dat
 
 echo "----------------- Produce coredat ----------------"
 srun dplace ../install/NRN/x86_64/special -mpi -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
+mv coredat coredat_cpu
 
 echo "----------------- CoreNEURON SIM (CPU_MOD2C) ----------------"
-srun dplace ../install/CPU_MOD2C/x86_64/special-core --mpi --tstop=$SIM_TIME -d coredat 2>&1 | tee CPU_MOD2C.log
+srun dplace ../install/CPU_MOD2C/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_MOD2C.log
 mv out.dat CPU_MOD2C.dat
 
 echo "----------------- CoreNEURON SIM (CPU_NMODL) ----------------"
-srun dplace ../install/CPU_NMODL/x86_64/special-core --mpi --tstop=$SIM_TIME -d coredat 2>&1 | tee CPU_NMODL.log
+srun dplace ../install/CPU_NMODL/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_NMODL.log
 mv out.dat CPU_NMODL.dat
 
 echo "----------------- CoreNEURON SIM (ISPC) ----------------"
-srun dplace ../install/ISPC/x86_64/special-core --mpi --tstop=$SIM_TIME -d coredat 2>&1 | tee ISPC.log
+srun dplace ../install/ISPC/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee ISPC.log
 mv out.dat ISPC.dat
 
 # =============================================================================
