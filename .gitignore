@@ -7,5 +7,6 @@
 /benchmark/channels/out.dat
 /benchmark/channels/*.log
 /benchmark/channels/*.dat
+/benchmark/channels/*.spk
 /benchmark/channels/core*
 slurm-*

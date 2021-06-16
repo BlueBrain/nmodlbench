@@ -20,4 +20,4 @@ The ```run_cpu.sh``` & ```run_gpu.sh``` scripts launch the tests:
 * ```sbatch run_cpu.sh``` (CPU-only tests)
 * ```sbatch run_gpu.sh``` (GPU-only tests)
 
-The output of the tests is stored in ```benchmark/channels``` folder (```BUILD_TYPE.dat / BUILD_TYPE.log``` files).
+The output of the tests is stored in ```benchmark/channels``` folder (```BUILD_TYPE.spk / BUILD_TYPE.log``` files).

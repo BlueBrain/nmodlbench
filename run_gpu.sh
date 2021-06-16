@@ -40,7 +40,7 @@ export NUM_CELLS=$((360*22))
 cd $BASE_DIR/channels
 
 rm -rf coredat_gpu
-rm GPU_MOD2C.dat GPU_NMODL.dat
+rm GPU_MOD2C.spk GPU_NMODL.spk
 rm GPU_MOD2C.log GPU_NMODL.log
 
 echo "----------------- Produce coredat ----------------"
@@ -48,14 +48,29 @@ srun dplace ../install/NRN/x86_64/special -mpi -c arg_dump_coreneuron_model=1 -c
 mv coredat coredat_gpu
 
 # =============================================================================
+nvidia-cuda-mps-control -d # Start the daemon
 
 echo "----------------- CoreNEURON SIM (GPU_MOD2C) ----------------"
 srun dplace ../install/GPU_MOD2C/x86_64/special-core --mpi --voltage 1000. --gpu --cell-permute 2 --tstop $SIM_TIME -d coredat_gpu 2>&1 | tee GPU_MOD2C.log
-mv out.dat GPU_MOD2C.dat
+# Sort the spikes
+cat out.dat | sort -k 1n,1n -k 2n,2n > GPU_MOD2C.spk
+rm out.dat
 
 #echo "----------------- CoreNEURON SIM (GPU_NMODL) ----------------"
 #srun dplace ../install/GPU_NMODL/x86_64/special-core --mpi --voltage 1000. --gpu --cell-permute 2 --tstop $SIM_TIME -d coredat_gpu 2>&1 | tee GPU_NMODL.log
-#mv out.dat GPU_NMODL.dat
+## Sort the spikes
+#cat out.dat | sort -k 1n,1n -k 2n,2n > GPU_NMODL.spk
+#rm out.dat
+
+echo quit | nvidia-cuda-mps-control
+# =============================================================================
+
+echo "---------------------------------------------"
+echo "-------------- Compare Spikes ---------------"
+echo "---------------------------------------------"
+
+diff -s NRN.spk GPU_MOD2C.spk
+#diff -s GPU_MOD2C.spk GPU_NMODL.spk
 
 # =============================================================================
 
