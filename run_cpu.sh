@@ -44,29 +44,29 @@ rm NRN.spk CPU_MOD2C.spk CPU_NMODL.spk ISPC.spk
 rm NRN.log CPU_MOD2C.log CPU_NMODL.log ISPC.log
 
 echo "----------------- NEURON SIM (CPU) ----------------"
-srun dplace ../install/NRN/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc 2>&1 | tee NRN.log
+srun dplace ../install/NRN/special/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc 2>&1 | tee NRN.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > NRN.spk
 rm out.dat
 
 echo "----------------- Produce coredat ----------------"
-srun dplace ../install/NRN/x86_64/special -mpi -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
+srun dplace ../install/NRN/special/x86_64/special -mpi -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
 mv coredat coredat_cpu
 
 echo "----------------- CoreNEURON SIM (CPU_MOD2C) ----------------"
-srun dplace ../install/CPU_MOD2C/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_MOD2C.log
+srun dplace ../install/CPU_MOD2C/special/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_MOD2C.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > CPU_MOD2C.spk
 rm out.dat
 
 echo "----------------- CoreNEURON SIM (CPU_NMODL) ----------------"
-srun dplace ../install/CPU_NMODL/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_NMODL.log
+srun dplace ../install/CPU_NMODL/special/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_NMODL.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > CPU_NMODL.spk
 rm out.dat
 
 echo "----------------- CoreNEURON SIM (ISPC) ----------------"
-srun dplace ../install/ISPC/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee ISPC.log
+srun dplace ../install/ISPC/special/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee ISPC.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > ISPC.spk
 rm out.dat

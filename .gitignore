@@ -8,5 +8,5 @@
 /benchmark/channels/*.log
 /benchmark/channels/*.dat
 /benchmark/channels/*.spk
-/benchmark/channels/core*
-slurm-*
+/benchmark/channels/*core*
+*slurm-*

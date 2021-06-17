@@ -240,27 +240,29 @@ install_coreneuron_ispc() {
 }
 
 run_nrnivmodl() {
-    cd $INSTALL_DIR/NRN
+    mkdir -p $INSTALL_DIR/NRN/special && pushd $INSTALL_DIR/NRN/special
     # Delete any executables from previous runs
     if [ $REINSTALL == 0 ]
     then
-        rm -rf x86_64 enginemech.o
+        rm -rf x86_64
     fi
     # Run nrnivmodl to generate the NEURON executable
-    bin/nrnivmodl $BASE_DIR/channels/lib/modlib
+    ../bin/nrnivmodl $BASE_DIR/channels/lib/modlib
+    popd
 }
 
 # Provide the BUILD_TYPE as argument
 run_nrnivmodl_core() {
     BUILD_TYPE=$1
-    cd $INSTALL_DIR/$BUILD_TYPE
+    mkdir -p $INSTALL_DIR/$BUILD_TYPE/special && pushd $INSTALL_DIR/$BUILD_TYPE/special
     # Delete any executables from previous runs
     if [ $REINSTALL == 0 ]
     then
-        rm -rf x86_64 enginemech.o
+        rm -rf x86_64
     fi
     # Run nrnivmodl-core to generate the CoreNEURON library
-    bin/nrnivmodl-core $BASE_DIR/channels/lib/modlib
+    ../bin/nrnivmodl-core $BASE_DIR/channels/lib/modlib
+    popd
 }
 
 # 1. Setting source & build dependencies

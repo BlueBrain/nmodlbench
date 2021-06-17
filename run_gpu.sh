@@ -44,20 +44,20 @@ rm GPU_MOD2C.spk GPU_NMODL.spk
 rm GPU_MOD2C.log GPU_NMODL.log
 
 echo "----------------- Produce coredat ----------------"
-srun dplace ../install/NRN/x86_64/special -mpi -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
+srun dplace ../install/NRN/special/x86_64/special -mpi -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
 mv coredat coredat_gpu
 
 # =============================================================================
 nvidia-cuda-mps-control -d # Start the daemon
 
 echo "----------------- CoreNEURON SIM (GPU_MOD2C) ----------------"
-srun dplace ../install/GPU_MOD2C/x86_64/special-core --mpi --voltage 1000. --gpu --cell-permute 2 --tstop $SIM_TIME -d coredat_gpu 2>&1 | tee GPU_MOD2C.log
+srun dplace ../install/GPU_MOD2C/special/x86_64/special-core --mpi --voltage 1000. --gpu --cell-permute 2 --tstop $SIM_TIME -d coredat_gpu 2>&1 | tee GPU_MOD2C.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > GPU_MOD2C.spk
 rm out.dat
 
 #echo "----------------- CoreNEURON SIM (GPU_NMODL) ----------------"
-#srun dplace ../install/GPU_NMODL/x86_64/special-core --mpi --voltage 1000. --gpu --cell-permute 2 --tstop $SIM_TIME -d coredat_gpu 2>&1 | tee GPU_NMODL.log
+#srun dplace ../install/GPU_NMODL/special/x86_64/special-core --mpi --voltage 1000. --gpu --cell-permute 2 --tstop $SIM_TIME -d coredat_gpu 2>&1 | tee GPU_NMODL.log
 ## Sort the spikes
 #cat out.dat | sort -k 1n,1n -k 2n,2n > GPU_NMODL.spk
 #rm out.dat
