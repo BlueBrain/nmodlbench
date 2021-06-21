@@ -40,8 +40,14 @@ export NUM_CELLS=$((360*22))
 cd $BASE_DIR/channels
 
 rm -rf coredat_gpu
-rm GPU_MOD2C.spk GPU_NMODL.spk
-rm GPU_MOD2C.log GPU_NMODL.log
+rm NRN_GPU.spk GPU_MOD2C.spk GPU_NMODL.spk
+rm NRN_GPU.log GPU_MOD2C.log GPU_NMODL.log
+
+echo "----------------- NEURON SIM (CPU) ----------------"
+srun dplace ../install/NRN/special/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc 2>&1 | tee NRN_GPU.log
+# Sort the spikes
+cat out.dat | sort -k 1n,1n -k 2n,2n > NRN_GPU.spk
+rm out.dat
 
 echo "----------------- Produce coredat ----------------"
 srun dplace ../install/NRN/special/x86_64/special -mpi -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
@@ -69,8 +75,21 @@ echo "---------------------------------------------"
 echo "-------------- Compare Spikes ---------------"
 echo "---------------------------------------------"
 
-diff -s NRN.spk GPU_MOD2C.spk
-#diff -s GPU_MOD2C.spk GPU_NMODL.spk
+DIFF=$(diff NRN_GPU.spk GPU_MOD2C.spk)
+if [ "$DIFF" != "" ] 
+then
+    echo "NRN_GPU.spk GPU_MOD2C.spk are not the same"
+else
+    echo "NRN_GPU.spk GPU_MOD2C.spk are the same"
+fi
+
+#DIFF=$(diff NRN_GPU.spk GPU_NMODL.spk)
+#if [ "$DIFF" != "" ] 
+#then
+#    echo "NRN_GPU.spk GPU_NMODL.spk are not the same"
+#else
+#    echo "NRN_GPU.spk GPU_NMODL.spk are the same"
+#fi
 
 # =============================================================================
 

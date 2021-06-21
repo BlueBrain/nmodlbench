@@ -40,13 +40,13 @@ export NUM_CELLS=$((360*22))
 cd $BASE_DIR/channels
 
 rm -rf coredat_cpu
-rm NRN.spk CPU_MOD2C.spk CPU_NMODL.spk ISPC.spk
-rm NRN.log CPU_MOD2C.log CPU_NMODL.log ISPC.log
+rm NRN_CPU.spk CPU_MOD2C.spk CPU_NMODL.spk ISPC.spk
+rm NRN_CPU.log CPU_MOD2C.log CPU_NMODL.log ISPC.log
 
 echo "----------------- NEURON SIM (CPU) ----------------"
-srun dplace ../install/NRN/special/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc 2>&1 | tee NRN.log
+srun dplace ../install/NRN/special/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc 2>&1 | tee NRN_CPU.log
 # Sort the spikes
-cat out.dat | sort -k 1n,1n -k 2n,2n > NRN.spk
+cat out.dat | sort -k 1n,1n -k 2n,2n > NRN_CPU.spk
 rm out.dat
 
 echo "----------------- Produce coredat ----------------"
@@ -77,9 +77,29 @@ echo "---------------------------------------------"
 echo "-------------- Compare Spikes ---------------"
 echo "---------------------------------------------"
 
-diff -s NRN.spk CPU_MOD2C.spk
-diff -s CPU_MOD2C.spk CPU_NMODL.spk
-diff -s CPU_NMODL.spk ISPC.spk
+DIFF=$(diff NRN_CPU.spk CPU_MOD2C.spk)
+if [ "$DIFF" != "" ] 
+then
+    echo "NRN_CPU.spk CPU_MOD2C.spk are not the same"
+else
+    echo "NRN_CPU.spk CPU_MOD2C.spk are the same"
+fi
+
+DIFF=$(diff NRN_CPU.spk CPU_NMODL.spk)
+if [ "$DIFF" != "" ] 
+then
+    echo "NRN_CPU.spk CPU_NMODL.spk are not the same"
+else
+    echo "NRN_CPU.spk CPU_NMODL.spk are the same"
+fi
+
+DIFF=$(diff NRN_CPU.spk ISPC.spk)
+if [ "$DIFF" != "" ] 
+then
+    echo "NRN_CPU.spk ISPC.spk are not the same"
+else
+    echo "NRN_CPU.spk ISPC.spk are the same"
+fi
 
 # =============================================================================
 
@@ -87,10 +107,10 @@ echo "---------------------------------------------"
 echo "----------------- SIM STATS -----------------"
 echo "---------------------------------------------"
 
-grep "numprocs" NRN.log
+grep "numprocs" NRN_CPU.log
 echo "Number of cells: $NUM_CELLS"
 echo "----------------- NEURON SIM STATS (CPU) ----------------"
-grep "psolve" NRN.log
+grep "psolve" NRN_CPU.log
 echo "----------------- CoreNEURON SIM (CPU_MOD2C) STATS ----------------"
 grep "Solver Time" CPU_MOD2C.log
 echo "----------------- CoreNEURON SIM (CPU_NMODL) STATS ----------------"
