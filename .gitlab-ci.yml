@@ -1,0 +1,23 @@
+include:
+  - project: hpc/gitlab-pipelines
+    file: spack-build-components.gitlab-ci.yml
+
+spack_setup:
+  extends: .spack_setup_ccache
+  variables:
+    SPACK_BRANCH: olupton/channel-benchmark
+
+build:
+  extends: .spack_build
+  variables:
+    SPACK_PACKAGE: neuron
+    # Build the default branch of neuron
+    SPACK_PACKAGE_REF: ''
+    SPACK_PACKAGE_COMPILER: intel
+    SPACK_PACKAGE_SPEC: +coreneuron+debug+tests~legacy-unit channel-benchmark=${CI_COMMIT_SHA}
+    SPACK_PACKAGE_DEPENDENCIES: ^coreneuron@develop
+
+test:
+  extends: .ctest
+  needs: [build]
+
