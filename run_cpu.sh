@@ -24,6 +24,7 @@
 BASE_DIR=$(pwd)/benchmark
 INSTALL_DIR=$BASE_DIR/install
 SOURCE_DIR=$BASE_DIR/sources
+
 export HOC_LIBRARY_PATH=$BASE_DIR/channels/lib/hoclib
 . $SOURCE_DIR/venv/bin/activate
 export PYTHONPATH=$INSTALL_DIR/NRN/lib/python:$PYTHONPATH
@@ -44,29 +45,29 @@ rm NRN_CPU.spk CPU_MOD2C.spk CPU_NMODL.spk ISPC.spk
 rm NRN_CPU.log CPU_MOD2C.log CPU_NMODL.log ISPC.log
 
 echo "----------------- NEURON SIM (CPU) ----------------"
-srun dplace ../install/NRN/special/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc 2>&1 | tee NRN_CPU.log
+srun dplace $INSTALL_DIR/NRN/special/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc 2>&1 | tee NRN_CPU.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > NRN_CPU.spk
 rm out.dat
 
 echo "----------------- Produce coredat ----------------"
-srun dplace ../install/NRN/special/x86_64/special -mpi -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
+srun dplace $INSTALL_DIR/NRN/special/x86_64/special -mpi -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
 mv coredat coredat_cpu
 
 echo "----------------- CoreNEURON SIM (CPU_MOD2C) ----------------"
-srun dplace ../install/CPU_MOD2C/special/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_MOD2C.log
+srun dplace $INSTALL_DIR/CPU_MOD2C/special/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_MOD2C.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > CPU_MOD2C.spk
 rm out.dat
 
 echo "----------------- CoreNEURON SIM (CPU_NMODL) ----------------"
-srun dplace ../install/CPU_NMODL/special/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_NMODL.log
+srun dplace $INSTALL_DIR/CPU_NMODL/special/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee CPU_NMODL.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > CPU_NMODL.spk
 rm out.dat
 
 echo "----------------- CoreNEURON SIM (ISPC) ----------------"
-srun dplace ../install/ISPC/special/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee ISPC.log
+srun dplace $INSTALL_DIR/ISPC/special/x86_64/special-core --mpi --voltage 1000. --tstop $SIM_TIME -d coredat_cpu 2>&1 | tee ISPC.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > ISPC.spk
 rm out.dat
