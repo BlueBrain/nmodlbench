@@ -98,6 +98,8 @@ echo "----------------- SIM STATS -----------------"
 echo "---------------------------------------------"
 
 echo "Number of cells: $NUM_CELLS"
+echo "----------------- NEURON SIM STATS (CPU) ----------------"
+grep "psolve" NRN_GPU.log
 echo "----------------- CoreNEURON SIM (GPU_MOD2C) STATS ----------------"
 grep "Solver Time" GPU_MOD2C.log
 #echo "----------------- CoreNEURON SIM (GPU_NMODL) STATS ----------------"
