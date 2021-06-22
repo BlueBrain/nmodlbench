@@ -208,7 +208,7 @@ install_coreneuron_gpu_nmodl()  {
         -DCORENRN_ENABLE_GPU=ON \
         -DCORENRN_ENABLE_NMODL=ON \
         -DCORENRN_NMODL_DIR=$INSTALL_DIR/NMODL \
-        -DCORENRN_NMODL_FLAGS='sympy --analytic' \ # given the resolved issues with eigen+openacc
+        -DCORENRN_NMODL_FLAGS='sympy --analytic' \
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCMAKE_BUILD_TYPE=Release
