@@ -117,7 +117,7 @@ install_neuron() {
         -DPYTHON_EXECUTABLE=$(which python3) \
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -j && make install
     popd
     unload_gcc
@@ -133,7 +133,7 @@ install_nmodl() {
         -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/NMODL \
         -DPYTHON_EXECUTABLE=$(which python3) \
         -DCMAKE_CXX_COMPILER=$CXX \
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -j && make install
     popd
     unload_gcc
@@ -154,7 +154,7 @@ install_coreneuron_cpu_mod2c() {
         -DCORENRN_ENABLE_NMODL=OFF \
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -j && make install
     popd
     unload_intel
@@ -173,7 +173,7 @@ install_coreneuron_cpu_nmodl() {
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCORENRN_NMODL_FLAGS='sympy --analytic' \
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -j && make install
     popd
     unload_intel
@@ -191,7 +191,7 @@ install_coreneuron_gpu_mod2c()  {
         -DCORENRN_ENABLE_NMODL=OFF \
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -j && make install
     popd
     unload_pgi_cuda
@@ -211,7 +211,7 @@ install_coreneuron_gpu_nmodl()  {
         -DCORENRN_NMODL_FLAGS='sympy --analytic' \
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -j && make install
     popd
     unload_pgi_cuda
@@ -232,7 +232,7 @@ install_coreneuron_ispc() {
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCORENRN_ENABLE_ISPC=ON \
         -DCORENRN_NMODL_FLAGS="sympy --analytic" \
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -j && make install
     popd
     unload_gcc
