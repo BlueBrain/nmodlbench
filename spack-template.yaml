@@ -1,4 +1,3 @@
 spack:
-  specs: []
-  view: false
+  view: true
   concretization: together
