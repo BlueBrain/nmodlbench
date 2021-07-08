@@ -10,3 +10,5 @@
 /benchmark/channels/*.spk
 /benchmark/channels/*core*
 *slurm-*
+/spack-envs/
+/spack-src-dirs/
