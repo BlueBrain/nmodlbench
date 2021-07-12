@@ -11,4 +11,9 @@
 /benchmark/channels/*core*
 *slurm-*
 /spack-envs/
+/spack-outputs/
+/spack-profiles/
+/spack-specials/
 /spack-src-dirs/
+/benchmark/channels/*.qdrep
+/benchmark/channels/*.sqlite
