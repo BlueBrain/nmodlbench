@@ -27,6 +27,11 @@ BASE_DIR=$(pwd)/benchmark
 INSTALL_DIR=$BASE_DIR/install
 SOURCE_DIR=$BASE_DIR/sources
 
+# Ways of handling MPI + GPU profiling:
+# 0: launch srun inside the profiler and get a single profile containing all processes on the zeroth node.
+# 1: launch the zeroth rank on each node inside the profiler.
+MPI_HANDLING_MODE=1
+
 export HOC_LIBRARY_PATH=$BASE_DIR/channels/lib/hoclib
 
 #Change this according to the desired runtime of the benchmark
@@ -89,18 +94,27 @@ fi
 nvidia-cuda-mps-control -d # Start the daemon
 
 echo "----------------- CoreNEURON SIM (GPU_MOD2C) ----------------"
-#export CALI_CONFIG=nvtx #,runtime-report
-export CALI_CONFIG=nvtx,runtime-report,profile.mpi
-#CALI_CONFIG=runtime-report,profile.cuda,profile.mpi srun -n ${num_mpi} /gpfs/bbp.cscs.ch/home/olupton/channel-benchmark/spack-specials/coreneuron_gpu_mod2c/x86_64/special-core -e 10 --gpu -d ${root_dir}/spack-src-dirs/coreneuron/tests/integration/ring --mpi
+# nvtx: Caliper creates NVTX ranges that nsys can pick up
+# runtime-report: Caliper prints a own profiling table at the end of execution
+export CALI_CONFIG=nvtx,runtime-report
+# Tell nsys that --capture-range=nvtx can be triggered by an NVTX range whose
+# name is not a registered string. Caliper does not use registered strings.
+export NSYS_NVTX_PROFILER_REGISTER_ONLY=0
 (
   spack env activate "${root_dir}/spack-envs/coreneuron_gpu_mod2c"
   mkdir -p "${output_prefix}/coreneuron_gpu_mod2c"
-  command -v nsys
-  command -v mpirun
-  export NSYS_NVTX_PROFILER_REGISTER_ONLY=0
-  srun -n ${num_mpi} sh ${root_dir}/launch_nsys.sh "${root_dir}/spack-profiles/$(date +%Y%m%d-%H%M%S)-%q{SLURM_PROCID}" \
-    dplace "${root_dir}/spack-specials/coreneuron_gpu_mod2c/x86_64/special-core" \
-    --voltage 1000. --mpi --gpu --cell-permute 2 --tstop $SIM_TIME -d "${coreneuron_input}" |& tee "${output_prefix}/coreneuron_gpu_mod2c/CNRN.log"
+  special_cmd="${root_dir}/spack-specials/coreneuron_gpu_mod2c/x86_64/special-core --voltage 1000. --mpi --gpu --cell-permute 2 --tstop ${SIM_TIME} -d ${coreneuron_input}"
+  profile_prefix="${root_dir}/spack-profiles/$(date +%Y%m%d-%H%M%S)"
+  if [[ ${MPI_HANDLING_MODE} == 0 ]];
+  then
+    DO_PROFILE_MPI=yes sh ${root_dir}/launch_nsys.sh "${profile_prefix}" srun -n ${num_mpi} dplace ${special_cmd}
+  elif [[ ${MPI_HANDLING_MODE} == 1 ]];
+  then
+    srun -n ${num_mpi} sh ${root_dir}/launch_nsys.sh "${profile_prefix}" dplace ${special_cmd}
+  else
+    echo "MPI_HANDLING_MODE=${MPI_HANDLING_MODE} is not supported"
+    exit 1
+  fi
   sort -k 1n,1n -k 2n,2n > "${output_prefix}/coreneuron_gpu_mod2c/CNRN.spk" < out.dat
   rm out.dat
 )
