@@ -30,11 +30,11 @@ SOURCE_DIR=$BASE_DIR/sources
 export HOC_LIBRARY_PATH=$BASE_DIR/channels/lib/hoclib
 
 #Change this according to the desired runtime of the benchmark
-export SIM_TIME=5
+export SIM_TIME=1
 
 # Number of cells ((LCM of #cores_system1, #core_system2)*#cell_types)
 export NUM_CELLS=$((360*22))
-export NUM_CELLS=44
+#export NUM_CELLS=44
 
 # =============================================================================
 
@@ -47,12 +47,13 @@ cd $BASE_DIR/channels
 
 # Load external packages that only work because of $LD_LIBRARY_PATH
 module load unstable hpe-mpi
-# Load tools that we want to explicitly use (nsys)
-module load cuda
-module list
 
 # Load Spack after the above modules, so we don't pick up modules from our private Spack installation.
 . ~/bin/setup_spack_env.sh
+
+# Load tools that we want to explicitly use (nsys)
+#module load cuda/11.3.1
+module list
 
 num_mpi=36
 neuron_spikes="${output_prefix}/neuron/NRN.spk"
@@ -88,18 +89,17 @@ fi
 nvidia-cuda-mps-control -d # Start the daemon
 
 echo "----------------- CoreNEURON SIM (GPU_MOD2C) ----------------"
-export CALI_CONFIG=nvtx,runtime-report
+#export CALI_CONFIG=nvtx #,runtime-report
+export CALI_CONFIG=nvtx,runtime-report,profile.mpi
+#CALI_CONFIG=runtime-report,profile.cuda,profile.mpi srun -n ${num_mpi} /gpfs/bbp.cscs.ch/home/olupton/channel-benchmark/spack-specials/coreneuron_gpu_mod2c/x86_64/special-core -e 10 --gpu -d ${root_dir}/spack-src-dirs/coreneuron/tests/integration/ring --mpi
 (
   spack env activate "${root_dir}/spack-envs/coreneuron_gpu_mod2c"
   mkdir -p "${output_prefix}/coreneuron_gpu_mod2c"
   command -v nsys
   command -v mpirun
-  nsys profile --stats=true -o profile%p \
-    --verbose --wait=all --kill=none \
-    --capture-range=cudaProfilerApi \
-    --trace=cuda,nvtx,osrt,openacc,openmp \
-    srun -n ${num_mpi} dplace \
-    "${root_dir}/spack-specials/coreneuron_gpu_mod2c/x86_64/special-core" \
+  export NSYS_NVTX_PROFILER_REGISTER_ONLY=0
+  srun -n ${num_mpi} sh ${root_dir}/launch_nsys.sh "${root_dir}/spack-profiles/$(date +%Y%m%d-%H%M%S)-%q{SLURM_PROCID}" \
+    dplace "${root_dir}/spack-specials/coreneuron_gpu_mod2c/x86_64/special-core" \
     --voltage 1000. --mpi --gpu --cell-permute 2 --tstop $SIM_TIME -d "${coreneuron_input}" |& tee "${output_prefix}/coreneuron_gpu_mod2c/CNRN.log"
   sort -k 1n,1n -k 2n,2n > "${output_prefix}/coreneuron_gpu_mod2c/CNRN.spk" < out.dat
   rm out.dat
