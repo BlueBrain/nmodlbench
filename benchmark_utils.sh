@@ -44,7 +44,7 @@ function run_benchmarks() {
   export HOC_LIBRARY_PATH=${root_dir}/benchmark/channels/lib/hoclib
 
   #Change this according to the desired runtime of the benchmark
-  export SIM_TIME=10
+  export SIM_TIME="0.425"
 
   # Number of cells ((LCM of #cores_system1, #core_system2)*#cell_types)
   # OL: this was the original comment but we seem to be ignoring it. IIUC there are 22 cell types.
