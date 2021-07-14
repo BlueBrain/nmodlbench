@@ -51,6 +51,7 @@ CORENEURON_VARIANTS="+caliper~legacy-unit~report"
 setup_environment neuron neuron@develop%gcc~legacy-unit~rx3d
 #setup_environment coreneuron_cpu_mod2c coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu~ispc~nmodl~sympy "${CALIPER_SPEC}"
 setup_environment coreneuron_gpu_mod2c coreneuron@develop%nvhpc@21.5${CORENEURON_VARIANTS}+gpu~ispc~nmodl~sympy "${CALIPER_SPEC}" "${CUDA_SPEC}"
+setup_environment coreneuron_gpu_mod2c_cuda110 coreneuron@develop%nvhpc@21.2${CORENEURON_VARIANTS}+gpu~ispc~nmodl~sympy "${CALIPER_SPEC}"
 #setup_environment coreneuron_cpu_ispc  coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu+ispc+nmodl+sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
 #setup_environment coreneuron_cpu_nmodl coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu~ispc+nmodl+sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
 #setup_environment coreneuron_gpu_nmodl coreneuron@develop%nvhpc@21.2${CORENEURON_VARIANTS}+gpu~ispc+nmodl+sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
@@ -65,7 +66,7 @@ compile_mechs() {
 
 # Translate/compile the various mechanisms
 compile_mechs neuron nrnivmodl
-for coreneuron_env in coreneuron_gpu_mod2c # coreneuron_cpu_mod2c coreneuron_gpu_mod2c coreneuron_cpu_ispc coreneuron_cpu_nmodl coreneuron_gpu_nmodl
+for coreneuron_env in coreneuron_gpu_mod2c coreneuron_gpu_mod2c_cuda110 # coreneuron_cpu_mod2c coreneuron_gpu_mod2c coreneuron_cpu_ispc coreneuron_cpu_nmodl coreneuron_gpu_nmodl
 do
   compile_mechs ${coreneuron_env} nrnivmodl-core
 done
