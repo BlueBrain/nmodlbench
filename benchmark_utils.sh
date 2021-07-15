@@ -30,8 +30,7 @@ function run_benchmarks() {
 
   if [[ ${backend} == "gpu" ]]
   then
-    num_mpi=4
-    gpu_arg="--gpu --cell-permute=2"
+    num_mpi=1 #4
   else
     num_mpi=${SLURM_TASKS_PER_NODE}
   fi
@@ -44,11 +43,16 @@ function run_benchmarks() {
   export HOC_LIBRARY_PATH=${root_dir}/benchmark/channels/lib/hoclib
 
   #Change this according to the desired runtime of the benchmark
-  export SIM_TIME="0.425"
+  export SIM_TIME="0.725"
+  export SIM_TIME="0.025"
+  export SIM_TIME=10
+  PRCELL_GID=1
 
   # Number of cells ((LCM of #cores_system1, #core_system2)*#cell_types)
   # OL: this was the original comment but we seem to be ignoring it. IIUC there are 22 cell types.
-  export NUM_CELLS=$((360*4))
+  export NUM_CELLS=$((80*22))
+  export NUM_CELLS=16
+  #export NUM_CELLS=1
 
   # Load external packages.
   # OL: if we want to use an older CUDA it might need to be included here.
@@ -74,7 +78,7 @@ function run_benchmarks() {
     (
       spack env activate ${root_dir}/spack-envs/neuron
       mkdir -p "${neuron_output_prefix}"
-      srun -n ${num_mpi} dplace ${root_dir}/spack-specials/neuron/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc |& tee "${neuron_output_prefix}/NRN.log"
+      srun -n ${num_mpi} dplace ${root_dir}/spack-specials/neuron/x86_64/special -mpi -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS -c arg_prcell_gid=$PRCELL_GID $HOC_LIBRARY_PATH/init.hoc |& tee "${neuron_output_prefix}/NRN.log"
       sort -k 1n,1n -k 2n,2n > "${neuron_spikes}" < out.dat
       rm out.dat
     )
@@ -111,9 +115,12 @@ function run_benchmarks() {
       # This means we can run CPU builds with the GPU-targeted input files...  
       if [[ ${backend} == "gpu" && ${cnrn} == *"gpu"* ]]
       then
-        gpu_arg="--gpu --cell-permute=2"
+        cell_permute=1
+        gpu_arg="--gpu --cell-permute=${cell_permute}"
+        prcellstate_slug="acc_gpu"
       else
         unset gpu_arg
+        prcellstate_slug="cpu"
       fi
 
       # Do runs with/without the profiler 
@@ -140,7 +147,7 @@ function run_benchmarks() {
         fi
   
         mkdir -p "${root_dir}/output/profiles"
-        special_cmd="${root_dir}/spack-specials/${cnrn}/x86_64/special-core --voltage 1000. --mpi ${gpu_arg} --tstop ${SIM_TIME} -d ${cnrn_input_prefix}/coredat"
+        special_cmd="${root_dir}/spack-specials/${cnrn}/x86_64/special-core --voltage 1000. --mpi ${gpu_arg} --tstop ${SIM_TIME} -d ${cnrn_input_prefix}/coredat --prcellgid ${PRCELL_GID}"
         profile_prefix="${output_profile_prefix}-${cnrn}-${profile_mode}"
         if [[ ${profile_mode} == "none" ]];
         then
@@ -161,6 +168,12 @@ function run_benchmarks() {
         fi
         mkdir -p "${output_prefix}/${cnrn}-${backend}"
         sort -k 1n,1n -k 2n,2n > "${output_prefix}/${cnrn}-${backend}/CNRN${suffix}.spk" < out.dat
+        formatted_sim_time=$(printf '%.6f' ${SIM_TIME})
+        for suffix in init t0.000000 t${formatted_sim_time}
+        do
+          filename="${PRCELL_GID}_${prcellstate_slug}_${suffix}.corenrn"
+          mv -v "${filename}" "${output_prefix}/${cnrn}-${backend}/${filename}"
+        done
         rm out.dat
       done
     )
@@ -176,32 +189,53 @@ function run_benchmarks() {
 }
 
 function compare_results() {
-echo "---------------------------------------------"
-echo "-------------- Compare Spikes ---------------"
-echo "---------------------------------------------"
-for cnrn in ${cnrn_configs}
-do
-  cnrn_spikefile="${output_prefix}/${cnrn}/${cnrn}-${num_mpi}ranks-none.spk"
-  diff=$(diff "${neuron_spikes}" "${cnrn_spikefile}" || true) 
-  if [[ -n "${diff}" ]]
-  then
-   echo ${neuron_spikes} and ${cnrn_spikefile} differ 
- fi
-done
-
-echo "---------------------------------------------"
-echo "----------------- SIM STATS -----------------"
-echo "---------------------------------------------"
-echo "Number of cells: $NUM_CELLS"
-echo "----------------- NEURON SIM STATS (CPU) ----------------"
-grep "psolve" "${output_prefix}/neuron/NRN.log"
-for cnrn in ${cnrn_configs}
-do
-  for profile_mode in ${PROFILE_MODES}
+  # Which input data/number of ranks/... to use, confusingly this is "cpu" for ~40 ranks or "gpu" for ~4 ranks
+  launch_mode=$1
+  # List of Spack environments
+  coreneuron_builds=$2
+  
+  # TODO: print a list of execution times
+  # echo "----------------- NEURON SIM STATS (CPU) ----------------"
+  # grep "psolve" "${output_prefix}/neuron/NRN.log"
+  # for cnrn in ${cnrn_configs}
+  # do
+  # for profile_mode in ${PROFILE_MODES}
+  #do
+  #  echo "----------------- CoreNEURON SIM (${cnrn} profile mode ${profile_mode}) STATS ----------------"
+  #  grep "Solver Time" "${output_profile_prefix}-${cnrn}-${profile_mode}-0-CNRN.log"
+  #done
+  #done
+  #echo "---------------------------------------------"
+  output_prefix="${PWD}/output"
+  for build1 in ${coreneuron_builds}
   do
-    echo "----------------- CoreNEURON SIM (${cnrn} profile mode ${profile_mode}) STATS ----------------"
-    grep "Solver Time" "${output_profile_prefix}-${cnrn}-${profile_mode}-0-CNRN.log"
+    for build2 in ${coreneuron_builds}
+    do
+      if [[ ! "${build1}" > "${build2}" ]]
+      then
+        continue
+      fi
+      build1_dump=${output_prefix}/${build1}-${launch_mode}/*_t0.000000.corenrn
+      build2_dump=${output_prefix}/${build2}-${launch_mode}/*_t0.000000.corenrn
+      echo Comparing
+      echo ${build1_dump}
+      echo ${build2_dump}
+      echo differ by $(diff ${build1_dump} ${build2_dump} | wc -l) lines
+      build1_spikes=${output_prefix}/${build1}-${launch_mode}/CNRN.spk
+      build2_spikes=${output_prefix}/${build2}-${launch_mode}/CNRN.spk
+      diff -q ${build1_spikes} ${build2_spikes}
+    done
   done
-done
-echo "---------------------------------------------"
+  #echo "---------------------------------------------"
+  #echo "-------------- Compare Spikes ---------------"
+  #echo "---------------------------------------------"
+  #for cnrn in ${cnrn_configs}
+  #do
+  #  cnrn_spikefile="${output_prefix}/${cnrn}/${cnrn}-${num_mpi}ranks-none.spk"
+  #  diff=$(diff "${neuron_spikes}" "${cnrn_spikefile}" || true) 
+  #  if [[ -n "${diff}" ]]
+  #  then
+  #    echo ${neuron_spikes} and ${cnrn_spikefile} differ 
+  #  fi
+  #done
 }
