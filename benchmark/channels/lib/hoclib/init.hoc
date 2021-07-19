@@ -10,11 +10,13 @@ default_var("arg_coreneuron", 0)
 default_var("arg_coreneuron_filemode", 0)
 default_var("arg_dump_coreneuron_model", 0)
 default_var("arg_datapath", ".")
+default_var("arg_prcell_gid", -1)
 
 use_coreneuron = arg_coreneuron
 use_coreneuron_filemode = arg_coreneuron_filemode
 dump_coreneuron_model = arg_dump_coreneuron_model
 tstop = arg_tstop
+prcell_gid = arg_prcell_gid
 
 objref pnm, coreConfig
 targetCount = arg_target_count
@@ -221,8 +223,10 @@ proc prun() { localobj py_obj
         pnm.pc.nrnbbcore_write(outputPath)
 
         // if only model dump mode then finish without running sim
-        if (dump_coreneuron_model && pnm.pc.id == 0) {
-            print "dump_coreneuron_model=1, finishing execution without simulation\n"
+        if (dump_coreneuron_model) {
+            if (pnm.pc.id == 0) {
+                print "dump_coreneuron_model=1, finishing execution without simulation\n"
+            }
             return
         }
     }
@@ -236,8 +240,13 @@ proc prun() { localobj py_obj
         py_obj = new PythonObject()
         py_obj.coreneuron.enable = 1
         py_obj.coreneuron.filemode = use_coreneuron_filemode
+        py_obj.coreneuron.prcellstate = prcell_gid
     }
-
+    if( prcell_gid != -1 && !use_coreneuron ) {
+        strdef suffix
+        sprint(suffix, "t_%lf", pnm.pc.t(0))
+        pnm.pc.prcellstate(prcell_gid, suffix)
+    }
     tsav = startsw()
     pnm.pc.set_maxstep(4)
     pnm.pc.timeout(200)
@@ -245,6 +254,11 @@ proc prun() { localobj py_obj
 
     if (pnm.pc.id == 0) {
         printf("psolve time %g seconds [tstop %g]\n", startsw() - tsav, tstop)
+    }
+    if( prcell_gid != -1 && !use_coreneuron ) {
+        strdef suffix
+        sprint(suffix, "t_%lf", pnm.pc.t(0))
+        pnm.pc.prcellstate(prcell_gid, suffix)
     }
 }
 
