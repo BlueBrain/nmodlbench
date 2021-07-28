@@ -59,13 +59,13 @@ unload_intel() {
 }
 
 load_pgi_cuda() {
-    module load nvhpc cuda
+    module load gcc nvhpc cuda
     export CC=$(which pgcc)
     export CXX=$(which pgc++)
 }
 
 unload_pgi_cuda() {
-    module unload nvhpc cuda
+    module unload gcc nvhpc cuda
     unset CC
     unset CXX
 }
