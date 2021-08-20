@@ -60,8 +60,8 @@ unload_intel() {
 
 load_pgi_cuda() {
     module load gcc nvhpc cuda
-    export CC=$(which pgcc)
-    export CXX=$(which pgc++)
+    export CC=$(which nvc)
+    export CXX=$(which nvc++)
 }
 
 unload_pgi_cuda() {
@@ -191,6 +191,7 @@ install_coreneuron_gpu_mod2c()  {
         -DCORENRN_ENABLE_NMODL=OFF \
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
+        -DCMAKE_CUDA_COMPILER=nvcc \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -j && make install
     popd
@@ -211,6 +212,7 @@ install_coreneuron_gpu_nmodl()  {
         -DCORENRN_NMODL_FLAGS='sympy --analytic' \
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
+        -DCMAKE_CUDA_COMPILER=nvcc \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -j && make install
     popd
