@@ -250,7 +250,7 @@ function compare_results() {
       echo differ by $(diff ${build1_dump} ${build2_dump} | wc -l) lines
       build1_spikes=${output_prefix}/${build1}-${launch_mode}/CNRN.spk
       build2_spikes=${output_prefix}/${build2}-${launch_mode}/CNRN.spk
-      diff -q ${build1_spikes} ${build2_spikes}
+      diff -qs ${build1_spikes} ${build2_spikes}
     done
   done
   #echo "---------------------------------------------"
