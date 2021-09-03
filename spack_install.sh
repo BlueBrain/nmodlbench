@@ -5,9 +5,14 @@ concurrent_jobs="36"
 clone_project() { 
   name="$1"
   url="$2"
+  branch="$3"
   if [[ ! -d "${root_dir}/spack-src-dirs/${name}" ]]
   then
-    git clone "${url}" "${root_dir}/spack-src-dirs/${name}"
+    if [ -n "${branch}" ]
+    then
+      branch_arg="--branch ${branch}"
+    fi
+    git clone ${branch_arg} "${url}" "${root_dir}/spack-src-dirs/${name}"
   fi
 }
 
@@ -54,26 +59,32 @@ module load unstable gcc
 
 # Make sure we have checkouts of the key projects.
 # Spack falls over if you ask it to do this itself :-(
+# clone_project eigen      git@github.com:BlueBrain/eigen.git       extend_CUDA_support
 clone_project nmodl      git@github.com:BlueBrain/nmodl.git
 clone_project neuron     git@github.com:neuronsimulator/nrn.git
 clone_project coreneuron git@github.com:BlueBrain/CoreNeuron.git
 
 # Create and install the various environments.
+# EIGEN_SPEC="eigen@develop"
 NMODL_SPEC="nmodl@develop%gcc~legacy-unit"
-CUDA_SPEC="cuda@11.4.0%gcc ^libiconv%gcc"
+CUDA_SPEC="cuda@11.0.2%gcc ^libiconv%gcc"
 CALIPER_SPEC="caliper%gcc@2.6.0:+cuda cuda_arch=70"
 CORENEURON_VARIANTS="+caliper~legacy-unit~report"
-setup_environment neuron neuron@develop%gcc~legacy-unit~rx3d
-setup_environment coreneuron_cpu_mod2c coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu~ispc~nmodl~sympy "${CALIPER_SPEC}"
-setup_environment coreneuron_gpu_mod2c coreneuron@develop%nvhpc@21.7${CORENEURON_VARIANTS}+gpu~ispc~nmodl~sympy "${CALIPER_SPEC}" "${CUDA_SPEC}"
+setup_environment neuron                      neuron@develop%gcc~legacy-unit~rx3d
+setup_environment coreneuron_cpu_mod2c        coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu~ispc~nmodl~sympy "${CALIPER_SPEC}"
+setup_environment coreneuron_gpu_mod2c        coreneuron@develop%nvhpc@21.2${CORENEURON_VARIANTS}+gpu~ispc~nmodl~sympy "${CALIPER_SPEC}" "${CUDA_SPEC}"
+setup_environment coreneuron_cpu_ispc         coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu+ispc+nmodl~sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
+setup_environment coreneuron_cpu_ispc_sympy   coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu+ispc+nmodl+sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
+setup_environment coreneuron_cpu_nmodl        coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu~ispc+nmodl~sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
+setup_environment coreneuron_cpu_nmodl_sympy  coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu~ispc+nmodl+sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
+setup_environment coreneuron_gpu_nmodl        coreneuron@develop%nvhpc@21.2${CORENEURON_VARIANTS}+gpu~ispc+nmodl~sympy "${CALIPER_SPEC}" "${NMODL_SPEC}" #"${EIGEN_SPEC}"
+setup_environment coreneuron_gpu_nmodl_sympy  coreneuron@develop%nvhpc@21.2${CORENEURON_VARIANTS}+gpu~ispc+nmodl+sympy "${CALIPER_SPEC}" "${NMODL_SPEC}" #"${EIGEN_SPEC}"
+
+#setup_environment coreneuron_gpu_nmodl_debug "coreneuron@develop%nvhpc@21.2${CORENEURON_VARIANTS}+gpu~ispc+nmodl+sympy build_type=Debug" "${CALIPER_SPEC}" "${NMODL_SPEC}"
 #setup_environment coreneuron_cpu_mod2c_nvhpc coreneuron@develop%nvhpc@21.5${CORENEURON_VARIANTS}~gpu~ispc~nmodl~sympy "${CALIPER_SPEC}"
 #setup_environment coreneuron_cpu_mod2c_nvhpc_debug "coreneuron@develop%nvhpc@21.5${CORENEURON_VARIANTS}~gpu~ispc~nmodl~sympy build_type=Debug" "${CALIPER_SPEC}"
 #setup_environment coreneuron_gpu_mod2c_debug "coreneuron@develop%nvhpc@21.5${CORENEURON_VARIANTS}+gpu~ispc~nmodl~sympy build_type=Debug" "${CALIPER_SPEC}" "${CUDA_SPEC}"
 #setup_environment coreneuron_gpu_mod2c_cuda110 coreneuron@develop%nvhpc@21.2${CORENEURON_VARIANTS}+gpu~ispc~nmodl~sympy "${CALIPER_SPEC}"
-#setup_environment coreneuron_cpu_ispc  coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu+ispc+nmodl+sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
-#setup_environment coreneuron_cpu_nmodl coreneuron@develop%intel${CORENEURON_VARIANTS}~gpu~ispc+nmodl+sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
-#setup_environment coreneuron_gpu_nmodl coreneuron@develop%nvhpc@21.2${CORENEURON_VARIANTS}+gpu~ispc+nmodl+sympy "${CALIPER_SPEC}" "${NMODL_SPEC}"
-
 compile_mechs() {
   env_name="$1"
   nrnivmodl="$2"

@@ -30,7 +30,7 @@ function run_benchmarks() {
 
   if [[ ${backend} == "gpu" ]]
   then
-    num_mpi=1
+    num_mpi=4
   else
     num_mpi=${SLURM_TASKS_PER_NODE}
   fi
@@ -45,14 +45,16 @@ function run_benchmarks() {
   #Change this according to the desired runtime of the benchmark
   export SIM_TIME="0.725"
   export SIM_TIME="0.025"
-  export SIM_TIME=1000
+  export SIM_TIME=10
+
+  # Disable prcellstate.
   PRCELL_GID=-1
 
   # Number of cells ((LCM of #cores_system1, #core_system2)*#cell_types)
   # OL: this was the original comment but we seem to be ignoring it. IIUC there are 22 cell types.
-  export NUM_CELLS=$((4*22))
+  export NUM_CELLS=$((64*22))
   #export NUM_CELLS=16
-  export NUM_CELLS=1
+  #export NUM_CELLS=1
 
   # Load external packages.
   # OL: if we want to use an older CUDA it might need to be included here.
