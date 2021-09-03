@@ -16,35 +16,32 @@ function run_benchmarks() {
   # CPU or GPU? This controls if we pass --gpu and whether we use ~1 rank/GPU or ~1 rank/core.
   backend=$1
 
+  # How many MPI ranks to use. For channel-benchmark the model behaviour/spikes
+  # depend on this, so we cannot compare results if this changes.
+  num_mpi=$2
+
+  # How many GPUs to make available.
+  num_gpus=$3
+
   # Which builds (=spack environments) to try and run.
-  cnrn_configs="$2"
+  cnrn_configs="$4"
 
   # This is added to output filenames, it's passed in so that CPU/GPU results can be named consistently.
-  date=$3
+  date=$5
   
   # Types of profiling run to do:
   # none: do not attach a profiler
   # allmpi-nsys: launch srun inside nsys and get a single profile containing all processes on the zeroth node.
   # single-nsys: launch the zeroth rank on each node inside nsys.
-  PROFILE_MODES="$4"
-
-  if [[ ${backend} == "gpu" ]]
-  then
-    num_mpi=4
-  else
-    num_mpi=${SLURM_TASKS_PER_NODE}
-  fi
+  PROFILE_MODES="$6"
 
   # Using top level source and install directory, set the HOC_LIBRARY_PATH for simulator
   root_dir="${PWD}"
   output_prefix="${root_dir}/output"
-  output_profile_prefix="${output_prefix}/profiles/${date}-${backend}"
 
   export HOC_LIBRARY_PATH=${root_dir}/benchmark/channels/lib/hoclib
 
   #Change this according to the desired runtime of the benchmark
-  export SIM_TIME="0.725"
-  export SIM_TIME="0.025"
   export SIM_TIME=10
 
   # Disable prcellstate.
@@ -53,8 +50,6 @@ function run_benchmarks() {
   # Number of cells ((LCM of #cores_system1, #core_system2)*#cell_types)
   # OL: this was the original comment but we seem to be ignoring it. IIUC there are 22 cell types.
   export NUM_CELLS=$((64*22))
-  #export NUM_CELLS=16
-  #export NUM_CELLS=1
 
   # Load external packages.
   # OL: if we want to use an older CUDA it might need to be included here.
@@ -69,8 +64,9 @@ function run_benchmarks() {
   # Enter the channel benchmark directory, it seems that we need to run from here?
   cd ${root_dir}/benchmark/channels
 
-  # Run NEURON to produce reference spikes.
-  neuron_output_prefix="${output_prefix}/neuron_${backend}"
+  # Run NEURON to produce reference spikes. Do not put ${date} in here because
+  # it's slow and tedious.
+  neuron_output_prefix="${output_prefix}/neuron_${num_mpi}ranks"
   neuron_spikes="${neuron_output_prefix}/NRN.spk"
   if [[ -f "${neuron_spikes}" ]]
   then
@@ -86,8 +82,9 @@ function run_benchmarks() {
     )
   fi
 
-  # Run NEURON to produce CoreNEURON input files.
-  cnrn_input_prefix="${output_prefix}/coreneuron_${backend}_input"
+  # Run NEURON to produce CoreNEURON input files. Don't put ${date} here
+  # either for speed.
+  cnrn_input_prefix="${output_prefix}/coreneuron_input_${num_mpi}ranks"
   if [[ -d "${cnrn_input_prefix}/coredat" ]]
   then
     echo "Skipping producing ${cnrn_input_prefix}/coredat"
@@ -100,11 +97,23 @@ function run_benchmarks() {
       mv coredat/ "${cnrn_input_prefix}/"
     )
   fi
+  
+  # Prefix for CoreNEURON results
+  output_prefix_with_date="${output_prefix}/${date}"
+  mkdir -p "${output_prefix_with_date}"
+  output_profile_prefix="${output_prefix_with_date}/${backend}-${num_mpi}ranks"
 
   # Prepare to run CoreNEURON simulations...
   if [[ ${backend} == "gpu" ]]
   then
     nvidia-cuda-mps-control -d || true # Start the daemon
+    prcellstate_slug="acc_gpu"
+    gpu_arg="--gpu --cell-permute=2"
+    export CUDA_VISIBLE_DEVICES=$(seq -s , 0 $((${num_gpus}-1)))
+    echo Set CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}
+    output_profile_prefix="${output_profile_prefix}-${num_gpus}gpus"
+  else
+    prcellstate_slug="cpu"
   fi
 
   for cnrn in ${cnrn_configs}
@@ -114,22 +123,11 @@ function run_benchmarks() {
       # Setup this CoreNEURON environment
       spack env activate "${root_dir}/spack-envs/${cnrn}"
 
-      # This means we can run CPU builds with the GPU-targeted input files...  
-      if [[ ${backend} == "gpu" && ${cnrn} == *"gpu"* ]]
-      then
-        cell_permute=2
-        gpu_arg="--gpu --cell-permute=${cell_permute}"
-        prcellstate_slug="acc_gpu"
-      else
-        unset gpu_arg
-        prcellstate_slug="cpu"
-      fi
-
       # Do runs with/without the profiler 
       for profile_mode in ${PROFILE_MODES}
       do
         echo "Running with profiler mode: ${profile_mode}"
-        mkdir -p "${root_dir}/output/profiles"
+        mkdir -p "${root_dir}/output"
         special_cmd="${root_dir}/spack-specials/${cnrn}/x86_64/special-core --voltage 1000. --mpi ${gpu_arg} --tstop ${SIM_TIME} -d ${cnrn_input_prefix}/coredat --prcellgid ${PRCELL_GID}"
         profile_prefix="${output_profile_prefix}-${cnrn}-${profile_mode}"
 
@@ -187,8 +185,7 @@ function run_benchmarks() {
         then
           suffix=-${profile_mode}
         fi
-        mkdir -p "${output_prefix}/${cnrn}-${backend}"
-        sort -k 1n,1n -k 2n,2n > "${output_prefix}/${cnrn}-${backend}/CNRN${suffix}.spk" < out.dat
+        sort -k 1n,1n -k 2n,2n > "${profile_prefix}.spk" < out.dat
         rm out.dat
 
         # Add some metadata to the Caliper output JSON file
@@ -201,7 +198,7 @@ function run_benchmarks() {
           for suffix in init t0.000000 t${formatted_sim_time}
           do
             filename="${PRCELL_GID}_${prcellstate_slug}_${suffix}.corenrn"
-            mv -v -- "${filename}" "${output_prefix}/${cnrn}-${backend}/${filename}"
+            mv -v -- "${filename}" "${profile_prefix}-${filename}"
           done
         fi
       done
