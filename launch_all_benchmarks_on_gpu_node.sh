@@ -28,3 +28,5 @@ date=$(date +%Y%m%d-%H%M%S)
 (run_benchmarks gpu 4 4 "${gpu_builds}" "${date}" "none")
 # 4 ranks, 1 GPU
 (run_benchmarks gpu 4 1 "${gpu_builds}" "${date}" "none")
+# 4 ranks, no GPUs
+(run_benchmarks cpu 4 0 "${cpu_builds}" "${date}" "none")

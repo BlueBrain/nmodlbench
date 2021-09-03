@@ -109,8 +109,6 @@ function run_benchmarks() {
     nvidia-cuda-mps-control -d || true # Start the daemon
     prcellstate_slug="acc_gpu"
     gpu_arg="--gpu --cell-permute=2"
-    export CUDA_VISIBLE_DEVICES=$(seq -s , 0 $((${num_gpus}-1)))
-    echo Set CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}
     output_profile_prefix="${output_profile_prefix}-${num_gpus}gpus"
   else
     prcellstate_slug="cpu"
@@ -132,7 +130,6 @@ function run_benchmarks() {
         profile_prefix="${output_profile_prefix}-${cnrn}-${profile_mode}"
 
         echo Command: ${special_cmd}
-
         # nvtx: Caliper creates NVTX ranges that nsys can pick up
         # runtime-report: Caliper prints its own profiling table at the end of execution
         #export CALI_CONFIG="runtime-report(calc.inclusive)"
@@ -167,16 +164,18 @@ function run_benchmarks() {
             module list
           fi
         fi
-  
+ 
+        srun_args="-n ${num_mpi} --gres=gpu:${num_gpus}"
+        echo srun_args=${srun_args}
         if [[ ${profile_mode} == "none" ]];
         then
-          srun -n ${num_mpi} dplace ${special_cmd} |& tee "${profile_prefix}-0-CNRN.log"
+          srun ${srun_args} dplace ${special_cmd} |& tee "${profile_prefix}-0-CNRN.log"
         elif [[ ${profile_mode} == "allmpi-nsys" ]];
         then
-          DO_PROFILE_MPI=yes sh ${root_dir}/launch_nsys.sh "${profile_prefix}" srun -n ${num_mpi} dplace ${special_cmd}
+          DO_PROFILE_MPI=yes sh ${root_dir}/launch_nsys.sh "${profile_prefix}" srun ${srun_args} dplace ${special_cmd}
         elif [[ ${profile_mode} == "single-nsys" ]];
         then
-          srun -n ${num_mpi} sh ${root_dir}/launch_nsys.sh "${profile_prefix}" dplace ${special_cmd}
+          srun ${srun_args} sh ${root_dir}/launch_nsys.sh "${profile_prefix}" dplace ${special_cmd}
         else
           echo "Profiling mode ${profile_mode} is not supported"
           exit 1
