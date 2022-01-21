@@ -29,10 +29,6 @@ THREADSAFE
 VERBATIM
 extern int ifarg(int iarg);
 #ifndef CORENEURON_BUILD
-extern double* vector_vec(void* vv);
-extern void* vector_new1(int _i);
-extern int vector_capacity(void* vv);
-extern void* vector_arg(int iarg);
 double nrn_random_pick(void* r);
 #endif
 void* nrn_random_arg(int argpos);
@@ -72,7 +68,7 @@ INITIAL {
 
    : determine start of spiking.
    VERBATIM
-   void *vvTbins = *((void**)(&_p_vecTbins));
+   auto* vvTbins = *reinterpret_cast<IvocVect**>(&_p_vecTbins);
    double* px;
 
    if (vvTbins && vector_capacity(vvTbins)>=1) {
@@ -89,7 +85,7 @@ INITIAL {
    event = start;
 
    /* set curRate */
-   void *vvRate = *((void**)(&_p_vecRate));
+   auto* vvRate = *reinterpret_cast<IvocVect**>(&_p_vecRate);
    px = vector_vec(vvRate);
 
    /* set rmax */
@@ -248,9 +244,8 @@ ENDVERBATIM
 PROCEDURE setTbins() {
 VERBATIM
   #ifndef CORENEURON_BUILD
-  void** vv;
-  vv = (void**)(&_p_vecTbins);
-  *vv = (void*)0;
+  auto* vv = reinterpret_cast<IvocVect**>(&_p_vecTbins);
+  *vv = nullptr;
 
   if (ifarg(1)) {
     *vv = vector_arg(1);
@@ -271,9 +266,8 @@ PROCEDURE setRate() {
 VERBATIM
   #ifndef CORENEURON_BUILD
 
-  void** vv;
-  vv = (void**)(&_p_vecRate);
-  *vv = (void*)0;
+  auto* vv = reinterpret_cast<IvocVect**>(&_p_vecRate);
+  *vv = nullptr;
 
   if (ifarg(1)) {
     *vv = vector_arg(1);
@@ -297,12 +291,12 @@ ENDVERBATIM
 
 PROCEDURE update_time() {
 VERBATIM
-  void* vv; int i, i_prev, size; double* px;
+  int i, i_prev, size; double* px;
   i = (int)index;
   i_prev = i;
 
   if (i >= 0) { // are we disabled?
-    vv = *((void**)(&_p_vecTbins));
+    auto* vv = *reinterpret_cast<IvocVect**>(&_p_vecTbins);
     if (vv) {
       size = vector_capacity(vv);
       px = vector_vec(vv);
@@ -314,7 +308,7 @@ VERBATIM
       /* did the index change? */
       if (i!=i_prev) {
         /* advance curRate to next vecRate if possible */
-        void *vvRate = *((void**)(&_p_vecRate));
+        auto* vvRate = *reinterpret_cast<IvocVect**>(&_p_vecRate);
         if (vvRate && vector_capacity(vvRate)>i) {
           px = vector_vec(vvRate);
           curRate = px[i];
@@ -424,7 +418,7 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
         uint32_t dsize = 0;
         if (_p_vecRate)
         {
-          dsize = (uint32_t)vector_capacity(_p_vecRate);
+          dsize = (uint32_t)vector_capacity(reinterpret_cast<IvocVect*>(_p_vecRate));
         }
         if (iArray) {
                 uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
@@ -445,7 +439,7 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
                 ia[4] = (int)which;
 
                 ia = ia + 5;
-                void* vec = _p_vecRate;
+                auto* vec = reinterpret_cast<IvocVect*>(_p_vecRate);
                 ia[0] = dsize;
 
                 double *da = dArray + *doffset;
@@ -460,7 +454,7 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
                   da[iInt] = dv[iInt];
                 }
 
-                vec = _p_vecTbins;
+                vec = reinterpret_cast<IvocVect*>(_p_vecTbins);
                 da = dArray + *doffset + dsize;
                 if(dsize)
                 {
@@ -509,11 +503,13 @@ static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset,
         *ioffset += 11;
 
         double *da = dArray + *doffset;
-        if(!_p_vecRate) {
-          _p_vecRate = vector_new1(dsize);  /* works for dsize=0 */
+        auto* vec = reinterpret_cast<IvocVect*>(_p_vecRate);
+        if(!vec) {
+          vec = vector_new1(dsize);  /* works for dsize=0 */
         }
-        assert(dsize == vector_capacity(_p_vecRate));
-        double *dv = vector_vec(_p_vecRate);
+        assert(dsize == vector_capacity(vec));
+        double *dv = vector_vec(vec);
+        _p_vecRate = reinterpret_cast<double*>(vec);
         int iInt;
         for (iInt = 0; iInt < dsize; ++iInt)
         {
@@ -522,11 +518,13 @@ static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset,
         *doffset += dsize;
 
         da = dArray + *doffset;
-        if(!_p_vecTbins) {
-          _p_vecTbins = vector_new1(dsize);
+        vec = reinterpret_cast<IvocVect*>(_p_vecTbins);
+        if(!vec) {
+          vec = vector_new1(dsize);
         }
-        assert(dsize == vector_capacity(_p_vecTbins));
-        dv = vector_vec(_p_vecTbins);
+        assert(dsize == vector_capacity(vec));
+        dv = vector_vec(vec);
+        _p_vecTbins = reinterpret_cast<double*>(vec);
         for (iInt = 0; iInt < dsize; ++iInt)
         {
           dv[iInt] = da[iInt];

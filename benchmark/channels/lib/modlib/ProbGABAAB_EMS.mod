@@ -327,7 +327,7 @@ VERBATIM
 #ifndef CORENEURON_BUILD
         /* first arg is direction (0 save, 1 restore), second is array*/
         /* if first arg is -1, fill xdir with the size of the array */
-        double *xdir, *xval, *hoc_pgetarg();
+        double *xdir, *xval;
         long nrn_get_random_sequence(void* r);
         void nrn_set_random_sequence(void* r, int val);
         xdir = hoc_pgetarg(1);

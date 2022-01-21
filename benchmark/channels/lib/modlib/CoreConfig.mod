@@ -17,9 +17,6 @@ VERBATIM
 #include <coreneuron/engine.h>
 #endif
 
-extern double* vector_vec();
-extern int vector_capacity();
-extern void* vector_arg();
 extern int nrnmpi_myid;
 
 // name of config files
