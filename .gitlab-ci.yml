@@ -1,23 +1,10 @@
-include:
-  - project: hpc/gitlab-pipelines
-    file: spack-build-components.gitlab-ci.yml
-
-spack_setup:
-  extends: .spack_setup_ccache
+channel_benchmark_perf_tests:
+  trigger:
+    project: hpc/personal/coreneuron-perf-tests
+    strategy: depend
   variables:
-    SPACK_BRANCH: olupton/channel-benchmark
-
-build:
-  extends: .spack_build
-  variables:
-    SPACK_PACKAGE: neuron
-    # Build the default branch of neuron
-    SPACK_PACKAGE_REF: ''
-    SPACK_PACKAGE_COMPILER: intel
-    SPACK_PACKAGE_SPEC: +coreneuron+debug+tests~legacy-unit channel-benchmark=${CI_COMMIT_SHA}
-    SPACK_PACKAGE_DEPENDENCIES: ^coreneuron@develop
-
-test:
-  extends: .ctest
-  needs: [build]
-
+    # If we want to support the full set of other variables like NEURON_BRANCH,
+    # CORENEURON_TAG and so on then look at SPACK_SETUP_COMMIT_MAPPING_URL,
+    # SPACK_ENV_FILE_URL and so on in gitlab-pipelines, or follow the example
+    # of how the CoreNEURON pipeline triggers the BlueConfigs pipeline.
+    CHANNEL_BENCHMARK_BRANCH: ${CI_COMMIT_BRANCH}
