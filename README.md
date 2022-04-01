@@ -1,5 +1,9 @@
 # Channel Benchmark
 
+## Compatibility
+
+- This version of the repository is compatible with NEURON versions newer than 8.1 (!9)
+
 ## Installation
 
 The ```install.sh``` script builds the following under the ```benchmark/install``` folder:

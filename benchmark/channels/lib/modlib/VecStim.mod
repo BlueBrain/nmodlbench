@@ -74,19 +74,12 @@ NET_RECEIVE (w) {
     }
 }
 
-
-VERBATIM
-extern double* vector_vec();
-extern int vector_capacity();
-extern void* vector_arg();
-ENDVERBATIM
-
 PROCEDURE element() {
 VERBATIM
-    { void* vv; int i, size; double* px;
+    { IvocVect* vv; int i, size; double* px;
         i = (int)index;
         if (i >= 0) {
-            vv = *((void**)(&space));
+            vv = *((IvocVect**)(&space));
             if (vv) {
                 size = vector_capacity(vv);
                 px = vector_vec(vv);
