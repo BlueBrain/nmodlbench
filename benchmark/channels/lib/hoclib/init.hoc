@@ -154,7 +154,7 @@ for cellIndex=0, targetCount-1 {
     // assume all morphologies are 'asc' to simplify this code
     morph = load_morphology( mFilePath, morphList.o(offset).s, morphLookup )
     sprint( typeString.s, "cellInst = new %s( %d, %s )", etypeList.o(offset).s, cellIndex+1, morph )
-
+    morph = nil
     execute1( typeString.s )
     cellList.append( cellInst )
     //timeit("add cell")
@@ -170,6 +170,7 @@ for cellIndex=0, targetCount-1 {
     // todo - build sectionref array, for given syn count throw random numbers for synapse location (activation? could use finitializer callback)
     gensyns(cellInst)
     //timeit("add syns")
+    cellInst = nil
 }
 {pnm.pc.multisplit()}
 
@@ -215,6 +216,15 @@ if( pnm.myid == 0 && vvec.size() > 0 ) {
     rfile.close()
 }
 */
+proc cleanup() {
+    morphList.remove_all()
+    etypeList.remove_all()
+    for cellIndex=0, cellList.count()-1 {
+        cellList.o(cellIndex).clear()
+    }
+    cellList.remove_all()
+    stimList.remove_all()
+}
 
 proc prun() { localobj py_obj
 
@@ -232,6 +242,15 @@ proc prun() { localobj py_obj
             if (pnm.pc.id == 0) {
                 print "dump_coreneuron_model=1, finishing execution without simulation\n"
             }
+            // print "All objects before cleanup"
+            // symbols()
+            // allobjectvars()
+            // allobjects()
+            cleanup()
+            print "All objects after cleanup"
+            symbols()
+            allobjectvars()
+            allobjects()
             return
         }
     }
@@ -253,6 +272,7 @@ proc prun() { localobj py_obj
         sprint(suffix, "t_%lf", pnm.pc.t(0))
         pnm.pc.prcellstate(prcell_gid, suffix)
     }
+    allobjects()
     tsav = startsw()
     pnm.pc.set_maxstep(4)
     pnm.pc.timeout(200)

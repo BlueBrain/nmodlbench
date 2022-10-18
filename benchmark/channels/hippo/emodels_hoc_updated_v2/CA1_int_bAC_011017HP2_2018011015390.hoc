@@ -51,6 +51,8 @@ proc setCCell(){
  */
 proc clear() { localobj nil
     CellRef = nil
+    synHelperList.remove_all()
+    synlist.remove_all()
 }
 
 
