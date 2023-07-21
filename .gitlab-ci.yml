@@ -4,6 +4,10 @@ include:
       - github-project-pipelines.gitlab-ci.yml
 
 
+debug-info:
+  script:
+    - echo $CI_PIPELINE_SOURCE
+
 channel_benchmark_perf_tests:
   trigger:
     project: hpc/cellular/coreneuron-perf-tests
