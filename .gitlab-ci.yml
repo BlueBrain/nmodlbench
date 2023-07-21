@@ -1,6 +1,6 @@
 channel_benchmark_perf_tests:
   trigger:
-    project: hpc/personal/coreneuron-perf-tests
+    project: hpc/cellular/coreneuron-perf-tests
     strategy: depend
   variables:
     # If we want to support the full set of other variables like NEURON_BRANCH,
