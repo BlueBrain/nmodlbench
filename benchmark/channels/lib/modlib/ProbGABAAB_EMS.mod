@@ -52,7 +52,7 @@ NEURON {
 	RANGE i,i_GABAA, i_GABAB, g_GABAA, g_GABAB, g, e_GABAA, e_GABAB, GABAB_ratio
         RANGE A_GABAA_step, B_GABAA_step, A_GABAB_step, B_GABAB_step
 	NONSPECIFIC_CURRENT i
-    BBCOREPOINTER rng
+    RANDOM rng
     RANGE synapseID, selected_for_report, verboseLevel
 }
 
@@ -80,13 +80,6 @@ The Verbatim block is needed to generate random nos. from a uniform distribution
 for comparison with Pr to decide whether to activate the synapse or not
 ENDCOMMENT
 
-VERBATIM
-#include<stdlib.h>
-#include<stdio.h>
-#include<math.h>
-ENDVERBATIM
-
-
 ASSIGNED {
 	v (mV)
 	i (nA)
@@ -101,8 +94,6 @@ ASSIGNED {
 	g (uS)
 	factor_GABAA
         factor_GABAB
-        rng
-        usingR123            : TEMPORARY until mcellran4 completely deprecated
 
     : MVR
     unoccupied (1) : no. of unoccupied sites following release event
@@ -148,11 +139,7 @@ INITIAL{
         A_GABAB_step = exp(dt*(( - 1.0 ) / tau_r_GABAB))
         B_GABAB_step = exp(dt*(( - 1.0 ) / tau_d_GABAB))
 
-        VERBATIM
-        if( usingR123 ) {
-            nrnran123_setseq((nrnran123_State*)_p_rng, 0, 0);
-        }
-        ENDVERBATIM
+        random_setseq(rng, 0)
 }
 
 BREAKPOINT {
@@ -262,141 +249,11 @@ ENDVERBATIM
 
 }
 
-
-PROCEDURE setRNG() {
-VERBATIM
-    #ifndef CORENEURON_BUILD
-    // For compatibility, allow for either MCellRan4 or Random123
-    // Distinguish by the arg types
-    // Object => MCellRan4, seeds (double) => Random123
-    usingR123 = 0;
-    if( ifarg(1) && hoc_is_double_arg(1) ) {
-        nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
-        uint32_t a2 = 0;
-        uint32_t a3 = 0;
-
-        if (*pv) {
-            nrnran123_deletestream(*pv);
-            *pv = (nrnran123_State*)0;
-        }
-        if (ifarg(2)) {
-            a2 = (uint32_t)*getarg(2);
-        }
-        if (ifarg(3)) {
-            a3 = (uint32_t)*getarg(3);
-        }
-        *pv = nrnran123_newstream3((uint32_t)*getarg(1), a2, a3);
-        usingR123 = 1;
-    } else if( ifarg(1) ) {   // not a double, so assume hoc object type
-        void** pv = (void**)(&_p_rng);
-        *pv = nrn_random_arg(1);
-    } else {  // no arg, so clear pointer
-        void** pv = (void**)(&_p_rng);
-        *pv = (void*)0;
-    }
-    #endif
-ENDVERBATIM
-}
-
-
 FUNCTION urand() {
-VERBATIM
-    double value = 0.0;
-    if ( usingR123 ) {
-        value = nrnran123_dblpick((nrnran123_State*)_p_rng);
-    } else if (_p_rng) {
-        #ifndef CORENEURON_BUILD
-        value = nrn_random_pick((Rand*)_p_rng);
-        #endif
-    } else {
-        // Note: prior versions used scop_random(1), but since we never use this model without configuring the rng.  Maybe should throw error?
-        value = 0.0;
-    }
-    _lurand = value;
-ENDVERBATIM
+    urand = random_dblpick(rng)
 }
-
-
-FUNCTION bbsavestate() {
-        bbsavestate = 0
-VERBATIM
-#ifndef CORENEURON_BUILD
-        /* first arg is direction (0 save, 1 restore), second is array*/
-        /* if first arg is -1, fill xdir with the size of the array */
-        double *xdir, *xval;
-        xdir = hoc_pgetarg(1);
-        xval = hoc_pgetarg(2);
-        if (_p_rng) {
-            // tell how many items need saving
-            if (*xdir == -1) {  // count items
-                if( usingR123 ) {
-                    *xdir = 2.0;
-                } else {
-                    *xdir = 1.0;
-                }
-                return 0.0;
-            } else if(*xdir ==0 ) {  // save
-                if( usingR123 ) {
-                    uint32_t seq;
-                    char which;
-                    nrnran123_getseq( (nrnran123_State*)_p_rng, &seq, &which );
-                    xval[0] = (double) seq;
-                    xval[1] = (double) which;
-                } else {
-                    xval[0] = (double)nrn_get_random_sequence((Rand*)_p_rng);
-                }
-            } else {  // restore
-                if( usingR123 ) {
-                    nrnran123_setseq( (nrnran123_State*)_p_rng, (uint32_t)xval[0], (char)xval[1] );
-                } else {
-                    nrn_set_random_sequence((Rand*)_p_rng, (long)(xval[0]));
-                }
-            }
-        }
-#endif
-ENDVERBATIM
-}
-
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel
 }
-
-
-VERBATIM
-static void bbcore_write(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
-   if (d) {
-    // write stream ids
-    uint32_t* di = ((uint32_t*)d) + *offset;
-    nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
-    nrnran123_getids3(*pv, di, di+1, di+2);
-
-    // write strem sequence
-    char which;
-    nrnran123_getseq(*pv, di+3, &which);
-    di[4] = (int)which;
-    //printf("ProbGABAAB_EMS bbcore_write %d %d %d\n", di[0], di[1], di[2]);
-   }
-  *offset += 5;
-}
-
-static void bbcore_read(double* x, int* d, int* xx, int* offset, _threadargsproto_) {
-  uint32_t* di = ((uint32_t*)d) + *offset;
-  if (di[0] != 0 || di[1] != 0 || di[2] != 0) {
-      nrnran123_State** pv = (nrnran123_State**)(&_p_rng);
-#if !NRNBBCORE
-      if(*pv) {
-          nrnran123_deletestream(*pv);
-      }
-#endif
-      *pv = nrnran123_newstream3(di[0], di[1], di[2]);
-
-      // restore stream sequence
-      char which = (char)di[4];
-      //nrnran123_setseq(*pv, di[3], which);
-  }
-  //printf("ProbGABAAB_EMS bbcore_read %d %d %d\n", di[0], di[1], di[2]);
-  *offset += 5;
-}
-ENDVERBATIM
 
