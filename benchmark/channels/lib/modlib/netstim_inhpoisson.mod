@@ -133,7 +133,7 @@ PROCEDURE generate_next_event() {
 
 
 FUNCTION urand() {
-    urand = random_dblpick(uniform_rng)
+    urand = random_dpick(uniform_rng)
 }
 
 FUNCTION erand() {

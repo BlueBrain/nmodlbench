@@ -250,7 +250,7 @@ ENDVERBATIM
 }
 
 FUNCTION urand() {
-    urand = random_dblpick(rng)
+    urand = random_dpick(rng)
 }
 
 FUNCTION toggleVerbose() {

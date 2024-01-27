@@ -262,7 +262,7 @@ NET_RECEIVE (weight,weight_AMPA, weight_NMDA, Psurv) {
 }
 
 FUNCTION urand() {
-    urand = random_dblpick(rng)
+    urand = random_dpick(rng)
 }
 
 FUNCTION toggleVerbose() {
