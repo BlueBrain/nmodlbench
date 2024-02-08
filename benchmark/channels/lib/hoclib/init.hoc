@@ -106,7 +106,7 @@ proc gensyns() { local synIndex, secIndex, nSec  localobj rngloc, rngtype, cell,
             synapse = new ProbGABAAB_EMS(0.5)
         }
         synapse.synapseID = synIndex
-        synapse.setRNG( cell.gid+250, synIndex+100, 300 )
+        synapse.rng.set_ids( cell.gid+250, synIndex+100, 300 )
         cell.synlist.append(synapse)
 
         // enable spont minis
@@ -114,7 +114,8 @@ proc gensyns() { local synIndex, secIndex, nSec  localobj rngloc, rngtype, cell,
         nc = new NetCon( ips, synapse )
         nc.delay = 0.1
         nc.weight = 1.0
-        ips.setRNGs( synIndex+200, cell.gid+250, 300, synIndex+200, cell.gid+250, 350 )
+        ips.exp_rng.set_seq(synIndex+200, cell.gid+250, 300)
+        ips.uniform_rng.set_seq(synIndex+200, cell.gid+250, 350)
         //if( cell.gid == 1 ) {
             //synapse.toggleVerbose()
         //}

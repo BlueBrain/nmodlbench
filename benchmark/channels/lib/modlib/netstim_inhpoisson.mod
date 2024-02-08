@@ -23,7 +23,8 @@ THREADSAFE
   ARTIFICIAL_CELL InhPoissonStim
   RANGE rmax
   RANGE duration
-  BBCOREPOINTER uniform_rng, exp_rng, vecRate, vecTbins
+  RANDOM uniform_rng, exp_rng
+  BBCOREPOINTER vecRate, vecTbins
   :THREADSAFE : only true if every instance has its own distinct Random
 }
 VERBATIM
@@ -50,9 +51,6 @@ ASSIGNED {
    curRate
    start (ms)
    event (ms)
-   uniform_rng
-   exp_rng
-   usingR123
    rmax
    activeFlag
 }
@@ -106,14 +104,10 @@ INITIAL {
      * neurodamus and then in coreneuron. But in general, initial state
      * should be callable multiple times.
      */
-   if (_p_uniform_rng && usingR123) {
-     nrnran123_setseq((nrnran123_State*)_p_uniform_rng, 0, 0);
-   }
-   if (_p_exp_rng && usingR123) {
-     nrnran123_setseq((nrnran123_State*)_p_exp_rng, 0, 0);
-   }
-
    ENDVERBATIM
+   random_setseq(uniform_rng, 0)
+   random_setseq(exp_rng, 0)
+
    update_time()
    erand() : for some reason, the first erand() call seems
            : to give implausibly large values, so we discard it
@@ -137,104 +131,14 @@ PROCEDURE generate_next_event() {
 
 }
 
-: Supports multiple rng types: mcellran4, random123
-: mcellran4:
-: 1st arg: exp_rng
-: 2nd arg: uniform_rng
-: random123
-: 3 exp seeds
-: 3 uniform seeds
-PROCEDURE setRNGs() {
-VERBATIM
-{
-#ifndef CORENEURON_BUILD
-    usingR123 = 0;
-    if( ifarg(1) && hoc_is_double_arg(1) ) {
-        nrnran123_State** pv = (nrnran123_State**)(&_p_exp_rng);
-
-        if (*pv) {
-            nrnran123_deletestream(*pv);
-            *pv = (nrnran123_State*)0;
-        }
-        *pv = nrnran123_newstream3((uint32_t)*getarg(1), (uint32_t)*getarg(2), (uint32_t)*getarg(3));
-
-        pv = (nrnran123_State**)(&_p_uniform_rng);
-        if (*pv) {
-            nrnran123_deletestream(*pv);
-            *pv = (nrnran123_State*)0;
-        }
-        *pv = nrnran123_newstream3((uint32_t)*getarg(4), (uint32_t)*getarg(5), (uint32_t)*getarg(6));
-
-        usingR123 = 1;
-    } else if( ifarg(1) ) {
-        void** pv = (void**)(&_p_exp_rng);
-        *pv = nrn_random_arg(1);
-
-        pv = (void**)(&_p_uniform_rng);
-        *pv = nrn_random_arg(2);
-    } else {
-        if( usingR123 ) {
-            nrnran123_State** pv = (nrnran123_State**)(&_p_exp_rng);
-            nrnran123_deletestream(*pv);
-            *pv = (nrnran123_State*)0;
-            pv = (nrnran123_State**)(&_p_uniform_rng);
-            nrnran123_deletestream(*pv);
-            *pv = (nrnran123_State*)0;
-            //_p_exp_rng = (nrnran123_State*)0;
-            //_p_uniform_rng = (nrnran123_State*)0;
-        }
-    }
-#endif
-}
-ENDVERBATIM
-}
-
 
 FUNCTION urand() {
-VERBATIM
-	if (_p_uniform_rng) {
-		/*
-		:Supports separate independent but reproducible streams for
-		: each instance. However, the corresponding hoc Random
-		: distribution MUST be set to Random.uniform(0,1)
-		*/
-            if( usingR123 ) {
-		_lurand = nrnran123_dblpick((nrnran123_State*)_p_uniform_rng);
-            } else {
-#ifndef CORENEURON_BUILD
-		_lurand = nrn_random_pick((Rand*)_p_uniform_rng);
-#endif
-            }
-	}else{
-  	  hoc_execerror("multithread random in NetStim"," only via hoc Random");
-	}
-ENDVERBATIM
+    urand = random_dpick(uniform_rng)
 }
 
 FUNCTION erand() {
-VERBATIM
-	if (_p_exp_rng) {
-		/*
-		:Supports separate independent but reproducible streams for
-		: each instance. However, the corresponding hoc Random
-		: distribution MUST be set to Random.negexp(1)
-		*/
-            if( usingR123 ) {
-		_lerand = nrnran123_negexp((nrnran123_State*)_p_exp_rng);
-            } else {
-#ifndef CORENEURON_BUILD
-		_lerand = nrn_random_pick((Rand*)_p_exp_rng);
-#endif
-            }
-	}else{
-  	  hoc_execerror("multithread random in NetStim"," only via hoc Random");
-	}
-ENDVERBATIM
+    erand = random_negexp(exp_rng)
 }
-
-
-
-
 
 PROCEDURE setTbins() {
 VERBATIM
@@ -419,23 +323,6 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
         }
         if (iArray) {
                 uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
-                nrnran123_State** pv = (nrnran123_State**)(&_p_exp_rng);
-                nrnran123_getids3(*pv, ia, ia+1, ia+2);
-
-                // for stream sequence
-                char which;
-
-                nrnran123_getseq(*pv, ia+3, &which);
-                ia[4] = (int)which;
-
-                ia = ia + 5;
-                pv = (nrnran123_State**)(&_p_uniform_rng);
-                nrnran123_getids3( *pv, ia, ia+1, ia+2);
-
-                nrnran123_getseq(*pv, ia+3, &which);
-                ia[4] = (int)which;
-
-                ia = ia + 5;
                 IvocVect* vec = (IvocVect*)_p_vecRate;
                 ia[0] = dsize;
 
@@ -462,42 +349,15 @@ static void bbcore_write(double* dArray, int* iArray, int* doffset, int* ioffset
                   da[iInt] = dv[iInt];
                 }
         }
-        *ioffset += 11;
+        *ioffset += 1;
         *doffset += 2*dsize;
 
 }
 
 static void bbcore_read(double* dArray, int* iArray, int* doffset, int* ioffset, _threadargsproto_) {
         uint32_t* ia = ((uint32_t*)iArray) + *ioffset;
-        nrnran123_State** pv;
-        if (ia[0] != 0 || ia[1] != 0)
-        {
-          pv = (nrnran123_State**)(&_p_exp_rng);
-#if !NRNBBCORE
-          if(*pv) {
-            nrnran123_deletestream(*pv);
-          }
-#endif
-          *pv = nrnran123_newstream3(ia[0], ia[1], ia[2] );
-          nrnran123_setseq(*pv, ia[3], (char)ia[4]);
-        }
-
-        ia = ia + 5;
-        if (ia[0] != 0 || ia[1] != 0)
-        {
-          pv = (nrnran123_State**)(&_p_uniform_rng);
-#if !NRNBBCORE
-          if(*pv) {
-            nrnran123_deletestream(*pv);
-          }
-#endif
-          *pv = nrnran123_newstream3(ia[0], ia[1], ia[2] );
-          nrnran123_setseq(*pv, ia[2], (char)ia[3]);
-        }
-
-        ia = ia + 5;
         int dsize = ia[0];
-        *ioffset += 11;
+        *ioffset += 1;
 
         double *da = dArray + *doffset;
         if(!_p_vecRate) {
