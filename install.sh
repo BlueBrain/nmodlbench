@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # stop on error
-set -e
+set -ex
 
 # build and install directories
 export BASE_DIR=$(pwd)/benchmark
@@ -249,7 +249,7 @@ run_nrnivmodl() {
         rm -rf x86_64
     fi
     # Run nrnivmodl to generate the NEURON executable
-    ../bin/nrnivmodl $BASE_DIR/channels/lib/modlib
+    nrnivmodl -nmodl $(which nmodl) $BASE_DIR/channels/lib/modlib
     popd
 }
 
@@ -263,30 +263,30 @@ run_nrnivmodl_core() {
         rm -rf x86_64
     fi
     # Run nrnivmodl-core to generate the CoreNEURON library
-    ../bin/nrnivmodl-core $BASE_DIR/channels/lib/modlib
+    nrnivmodl-core $BASE_DIR/channels/lib/modlib
     popd
 }
 
 # 1. Setting source & build dependencies
-setup_source
-setup_modules
-setup_python_packages
-
-# 2. Installing base software
-install_neuron
-install_nmodl
-
-# 3. Installing simulation engine
-install_coreneuron_cpu_mod2c
-install_coreneuron_cpu_nmodl
-install_coreneuron_gpu_mod2c
-#install_coreneuron_gpu_nmodl
-install_coreneuron_ispc
+#setup_source
+#setup_modules
+#setup_python_packages
+#
+## 2. Installing base software
+#install_neuron
+#install_nmodl
+#
+## 3. Installing simulation engine
+#install_coreneuron_cpu_mod2c
+#install_coreneuron_cpu_nmodl
+#install_coreneuron_gpu_mod2c
+##install_coreneuron_gpu_nmodl
+#install_coreneuron_ispc
 
 # 4. Generate library
 run_nrnivmodl
 run_nrnivmodl_core CPU_MOD2C
 run_nrnivmodl_core CPU_NMODL
-run_nrnivmodl_core GPU_MOD2C
+#run_nrnivmodl_core GPU_MOD2C
 #run_nrnivmodl_core GPU_NMODL
-run_nrnivmodl_core ISPC
+#run_nrnivmodl_core ISPC

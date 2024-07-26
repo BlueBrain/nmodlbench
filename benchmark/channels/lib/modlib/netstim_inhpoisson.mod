@@ -27,12 +27,9 @@ THREADSAFE
   BBCOREPOINTER vecRate, vecTbins
   :THREADSAFE : only true if every instance has its own distinct Random
 }
-VERBATIM
-
-// constant used to indicate an event triggered after a restore to restart the main event loop
-const int POST_RESTORE_RESTART_FLAG = -99;
-
-ENDVERBATIM
+CONSTANT{
+POST_RESTORE_RESTART_FLAG = -99
+}
 
 
 PARAMETER {
