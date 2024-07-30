@@ -248,8 +248,17 @@ run_nrnivmodl() {
     then
         rm -rf x86_64
     fi
-    # Run nrnivmodl to generate the NEURON executable
-    nrnivmodl -nmodl $(which nmodl) $BASE_DIR/channels/lib/modlib
+    # compile all of them with NOCMODL
+    nrnivmodl $BASE_DIR/channels/lib/modlib
+    if [ -n "$1" ]
+    then
+        # the name of the modfile (NO EXTENSION!)
+        modfile_to_compile="$1"
+        # remove the old one
+        rm -fr ${INSTALL_DIR}/NRN/special/${modfile_to_compile}.{cpp,o}
+        # only compile and link that one with NMODL
+        nrnivmodl -nmodl $(which nmodl) ${BASE_DIR}/channels/lib/modlib/${modfile_to_compile}.mod
+    fi
     popd
 }
 

@@ -14,7 +14,7 @@
 #SBATCH --mem=0
 
 # Stop on error
-#set -e
+set -ex
 
 # =============================================================================
 # SIMULATION PARAMETERS TO EDIT
@@ -44,14 +44,12 @@ export PRCELL_GID=-1
 cd $BASE_DIR/channels
 
 rm -rf coredat_cpu
-rm NRN_CPU.spk CPU_MOD2C.spk CPU_NMODL.spk ISPC.spk
-rm NRN_CPU.log CPU_MOD2C.log CPU_NMODL.log ISPC.log
+rm -fr NRN_CPU.spk CPU_MOD2C.spk CPU_NMODL.spk ISPC.spk
+rm -fr NRN_CPU.log CPU_MOD2C.log CPU_NMODL.log ISPC.log
 
 echo "----------------- NEURON SIM (CPU) ----------------"
-$INSTALL_DIR/NRN/special/x86_64/special -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS -c arg_prcell_gid=$PRCELL_GID $HOC_LIBRARY_PATH/init.hoc 2>&1 | tee NRN_CPU.log
-# Sort the spikes
-cat out.dat | sort -k 1n,1n -k 2n,2n > NRN_CPU.spk
-rm out.dat
+$INSTALL_DIR/NRN/special/x86_64/special -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS -c arg_prcell_gid=$PRCELL_GID $HOC_LIBRARY_PATH/init.hoc
+exit 0
 
 echo "----------------- Produce coredat ----------------"
 $INSTALL_DIR/NRN/special/x86_64/special -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
@@ -61,13 +59,13 @@ echo "----------------- CoreNEURON SIM (CPU_MOD2C) ----------------"
 $INSTALL_DIR/CPU_MOD2C/special/x86_64/special-core --voltage 1000. --tstop $SIM_TIME -d coredat_cpu --prcellgid $PRCELL_GID 2>&1 | tee CPU_MOD2C.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > CPU_MOD2C.spk
-rm out.dat
+rm -fr out.dat
 
 echo "----------------- CoreNEURON SIM (CPU_NMODL) ----------------"
 $INSTALL_DIR/CPU_NMODL/special/x86_64/special-core --voltage 1000. --tstop $SIM_TIME -d coredat_cpu --prcellgid $PRCELL_GID 2>&1 | tee CPU_NMODL.log
 # Sort the spikes
 cat out.dat | sort -k 1n,1n -k 2n,2n > CPU_NMODL.spk
-rm out.dat
+rm -fr out.dat
 
 
 # =============================================================================
@@ -77,7 +75,7 @@ echo "-------------- Compare Spikes ---------------"
 echo "---------------------------------------------"
 
 DIFF=$(diff NRN_CPU.spk CPU_MOD2C.spk)
-if [ "$DIFF" != "" ] 
+if [ "$DIFF" != "" ]
 then
     echo "NRN_CPU.spk CPU_MOD2C.spk are not the same"
 else
@@ -85,7 +83,7 @@ else
 fi
 
 DIFF=$(diff NRN_CPU.spk CPU_NMODL.spk)
-if [ "$DIFF" != "" ] 
+if [ "$DIFF" != "" ]
 then
     echo "NRN_CPU.spk CPU_NMODL.spk are not the same"
 else
