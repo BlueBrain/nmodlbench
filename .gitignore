@@ -1,12 +1,1 @@
-/benchmark/sources
-/benchmark/install
-/benchmark/build
-/benchmark/channels/x86_64
-/benchmark/channels/enginemech.o
-/benchmark/channels/sim.conf
-/benchmark/channels/out.dat
-/benchmark/channels/*.log
-/benchmark/channels/*.dat
-/benchmark/channels/*.spk
-/benchmark/channels/*core*
 *slurm-*

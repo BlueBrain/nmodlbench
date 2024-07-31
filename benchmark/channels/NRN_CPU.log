@@ -1,0 +1,27 @@
+NEURON -- VERSION 9.0a-241-g4a1e15add+ master (4a1e15add+) 2024-05-08
+Duke, Yale, and the BlueBrain Project -- Copyright 1984-2022
+See http://neuron.yale.edu/neuron/credits
+
+Additional mechanisms from files
+ "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/cacummb.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/cacumm.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/CaDynamics_DC0.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/CaDynamics_E2.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/cagk.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/Ca_HVA2.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/Ca_HVA.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/cal2.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/Ca_LVAst.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/Ca.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/can2.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/cat.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/CoreConfig.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/gap.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/halfgap.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/h.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/Ih.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/Im.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/kadist.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/kaprox.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/kca.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/kd2.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/kdb.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/kd.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/kdrbca1.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/kdrca1.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/KdShu2007.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/kmb.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/km.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/K_Pst.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/K_Tst.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/na3n.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/Nap_Et2.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/NaTa_t.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/NaTg.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/NaTs2_t.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/naxn.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/netstim_inhpoisson.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/new_calcium_channels.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/ProbAMPANMDA_EMS.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/ProbGABAAB_EMS.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/ProfileHelper.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/SK_E2.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/SKv3_1.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/TTXDynamicsSwitch.mod" "/gpfs/bbp.cscs.ch/data/project/proj16/jelic/nmodlbench/benchmark/channels/lib/modlib/VecStim.mod"
+arg_tstop  10 
+arg_target_count  6 
+arg_model  all
+arg_coreneuron  0 
+arg_coreneuron_gpu  0 
+arg_coreneuron_filemode  0 
+arg_dump_coreneuron_model  0 
+arg_datapath  .
+arg_prcell_gid  -1 
+	1 
+Loading 22  templates
+    Instatiated 0  cell of type 0 
+    Instatiated 1  cell of type 1 
+    Instatiated 2  cell of type 2 
+    Instatiated 3  cell of type 3 
+    Instatiated 4  cell of type 4 
+    Instatiated 5  cell of type 5 
+done cells
+add report
+Starting Simulation
+psolve time 14.0667 seconds [tstop 10]
