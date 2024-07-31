@@ -242,7 +242,7 @@ COMMENT
  * @param flag >= 0 for Typical activation, POST_RESTORE_RESTART_FLAG for only restarting the self event triggers 
  */
 ENDCOMMENT
-NET_RECEIVE (w) {
+NET_RECEIVE (w) { LOCAL u
     : Note - if we have restored a sim from a saved state.  We need to restart the queue, but do not generate a spike now
     if ( flag == POST_RESTORE_RESTART_FLAG ) {
         if (t+event < start+duration) {
@@ -258,16 +258,11 @@ NET_RECEIVE (w) {
         }
 
         : check if we trigger event on coupled synapse
-VERBATIM
-        double u = (double)urand(_threadargs_);
-        //printf("InhPoisson: spike time at time %g urand=%g curRate=%g, rmax=%g, curRate/rmax=%g \n",t, u, curRate, rmax, curRate/rmax);
+        u = urand()
         if (u<curRate/rmax) {
-ENDVERBATIM
             :printf("InhPoisson: spike time at time %g\n",t)
             net_event(t)
-VERBATIM
         }
-ENDVERBATIM
     }
 }
 
