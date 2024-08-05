@@ -23,8 +23,8 @@ extern void* vector_arg();
 extern int nrnmpi_myid;
 
 // name of config files
-static char* SIM_CONFIG_FILE = "sim.conf";
-static char* REPORT_CONFIG_FILE = "report.conf";
+static char const* const SIM_CONFIG_FILE = "sim.conf";
+static char const* const REPORT_CONFIG_FILE = "report.conf";
 static const int DEFAULT_CELL_PERMUTE = 0;
 
 #define MAX_FILE_PATH 4096
