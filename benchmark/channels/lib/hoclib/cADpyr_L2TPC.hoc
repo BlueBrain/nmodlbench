@@ -19,7 +19,7 @@ proc check_simulator() {
 }
 
 begintemplate cADpyr_L2TPC
-  public init, morphology, geom_nseg_fixed, geom_nsec, getCell, getCCell, setCCell, gid, getCell
+  public init, geom_nseg_fixed, geom_nsec, getCell, getCCell, setCCell, gid, getCell
   public connect2target, clear, ASCIIrpt
   public soma, dend, apic, axon, myelin, getThreshold
   create soma[1], dend[1], apic[1], axon[1], myelin[1]
