@@ -49,7 +49,9 @@ rm -fr NRN_CPU.log CPU_MOD2C.log CPU_NMODL.log ISPC.log
 
 echo "----------------- NEURON SIM (CPU) ----------------"
 $INSTALL_DIR/NRN/special/x86_64/special -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS -c arg_prcell_gid=$PRCELL_GID $HOC_LIBRARY_PATH/init.hoc
-exit 0
+# Sort the spikes
+cat out.dat | sort -k 1n,1n -k 2n,2n > NRN_CPU.spk
+rm -fr out.dat
 
 echo "----------------- Produce coredat ----------------"
 $INSTALL_DIR/NRN/special/x86_64/special -c arg_dump_coreneuron_model=1 -c arg_tstop=$SIM_TIME -c arg_target_count=$NUM_CELLS $HOC_LIBRARY_PATH/init.hoc
@@ -74,24 +76,22 @@ echo "---------------------------------------------"
 echo "-------------- Compare Spikes ---------------"
 echo "---------------------------------------------"
 
-DIFF=$(diff NRN_CPU.spk CPU_MOD2C.spk)
-if [ "$DIFF" != "" ]
+DIFF="$(diff NRN_CPU.spk CPU_MOD2C.spk)"
+if [ -n "$DIFF" ]
 then
-    echo "NRN_CPU.spk CPU_MOD2C.spk are not the same"
+    echo "NRN_CPU.spk CPU_MOD2C.spk are not the same, diff is:"
+    echo "${DIFF}"
+    exit 1
 else
     echo "NRN_CPU.spk CPU_MOD2C.spk are the same"
 fi
 
-DIFF=$(diff NRN_CPU.spk CPU_NMODL.spk)
-if [ "$DIFF" != "" ]
+DIFF="$(diff NRN_CPU.spk CPU_NMODL.spk)"
+if [ -n "$DIFF" ]
 then
-    echo "NRN_CPU.spk CPU_NMODL.spk are not the same"
+    echo "NRN_CPU.spk CPU_NMODL.spk are not the same, diff is:"
+    echo "${DIFF}"
+    exit 1
 else
     echo "NRN_CPU.spk CPU_NMODL.spk are the same"
 fi
-
-# =============================================================================
-
-echo "---------------------------------------------"
-echo "----------------- SIM STATS -----------------"
-echo "---------------------------------------------"
