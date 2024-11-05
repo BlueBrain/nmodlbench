@@ -105,12 +105,32 @@ setup_python_packages() {
 # Install neuron which is used for building network model. This could be built with GNU
 # toolchain as this is only used for input model generation.
 install_neuron() {
-    printf "\n----------------- INSTALL NEURON --------------\n"
+    printf "\n----------------- INSTALL NEURON+NOCMODL --------------\n"
     load_gcc
     mkdir -p $BUILD_DIR/neuron && pushd $BUILD_DIR/neuron
     cmake $SOURCE_DIR/nrn \
         -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/NRN \
         -DNRN_ENABLE_INTERVIEWS=OFF \
+        -DNRN_ENABLE_RX3D=OFF \
+        -DNRN_ENABLE_CORENEURON=OFF \
+        -DNRN_ENABLE_PYTHON=ON \
+        -DPYTHON_EXECUTABLE=$(which python3) \
+        -DCMAKE_C_COMPILER=$CC \
+        -DCMAKE_CXX_COMPILER=$CXX \
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    make -j && make install
+    popd
+    unload_gcc
+}
+
+install_neuron_nmodl() {
+    printf "\n----------------- INSTALL NEURON+NMODL --------------\n"
+    load_gcc
+    mkdir -p $BUILD_DIR/neuron && pushd $BUILD_DIR/neuron
+    cmake $SOURCE_DIR/nrn \
+        -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/NRN_NMODL \
+        -DNRN_ENABLE_INTERVIEWS=OFF \
+        -DNRN_ENABLE_NMODL=ON \
         -DNRN_ENABLE_RX3D=OFF \
         -DNRN_ENABLE_CORENEURON=OFF \
         -DNRN_ENABLE_PYTHON=ON \
@@ -242,7 +262,8 @@ install_coreneuron_ispc() {
 }
 
 run_nrnivmodl() {
-    mkdir -p $INSTALL_DIR/NRN/special && pushd $INSTALL_DIR/NRN/special
+    BUILD_TYPE=$1
+    mkdir -p $INSTALL_DIR/${BUILD_TYPE}/special && pushd $INSTALL_DIR/${BUILD_TYPE}/special
     # Delete any executables from previous runs
     if [ $REINSTALL == 0 ]
     then
@@ -274,6 +295,7 @@ setup_python_packages
 
 # 2. Installing base software
 install_neuron
+install_neuron_nmodl
 install_nmodl
 
 # 3. Installing simulation engine
@@ -284,7 +306,8 @@ install_coreneuron_gpu_mod2c
 install_coreneuron_ispc
 
 # 4. Generate library
-run_nrnivmodl
+run_nrnivmodl NRN
+run_nrnivmodl NRN_NMODL
 run_nrnivmodl_core CPU_MOD2C
 run_nrnivmodl_core CPU_NMODL
 run_nrnivmodl_core GPU_MOD2C
